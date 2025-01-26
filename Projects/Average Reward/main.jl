@@ -9,133 +9,47 @@ using Printf
 using Dates
 using Random
 import Gurobi
-# For 3D plotting with Makie; fully qualify calls as GLMakie.xyz
 using GLMakie
 using Statistics
+using NearestNeighbors
+using MeshGrid
+# License Academic 
+ENV["GUROBI_HOME"] = "/Library/gurobi1200/macos_universal2"
+# dbceb9e4-92ab-4786-a592-f7280d754adf
+# c2001602-6d04-4d8a-806a-fa87d4e8b048
+###############################################################################
+# 1) Grid
+no_states=2
+no_actions=1
+d_factor=0.01
 
-ENV["GRB_LICENSE_FILE"] = "/Users/saber/gurobi/gurobi.lic"
+r_states_min=[-2; -2]
+r_states_max=[2;2]
 
+r_action_min=[-1]
+r_action_max=[1]
+
+
+
+
+states = [LinRange(r_states_min[i]:d_factor:r_states_max[i]) for i in 1:length(r_states_min)]
+
+actions = [LinRange(r_action_min[i]:d_factor:r_action_max[i]) for i in 1:length(r_action_min)]
+
+
+nsamples=20
+sigma=0.1
 
 ###############################################################################
-# 1) Global Setup
-###############################################################################
-sigma_list  = [0.08]
-center_list = [(0.0,  0.0)]
-
-num_points_state = 51
-positions  = collect(LinRange(-2, 2, num_points_state))
-velocities = collect(LinRange(-2, 2, num_points_state))
-
-
-println(positions)
-
-
-
-
-num_points_action = 11
-actions = collect(LinRange(-1, 1, num_points_action))
-
-
-# println(actions)
-
-# # 2D states: cartesian product of positions × velocities
-# states = [(x, v) for x in positions for v in velocities]
-
-# # println(states)
-
-
-# println("Number of states  = ", length(states))
-# println("Number of actions = ", length(actions))
-
-
-###############################################################################
-# 2) searchsortednearest
-###############################################################################
-function searchsortednearest(arr::AbstractVector{<:Real}, x::Real)
-    idx = searchsortedfirst(arr, x)
-    if idx == 1
-        return 1
-    elseif idx > length(arr)   # out of bound case 
-        return length(arr)
-    else
-        if abs(arr[idx] - x) < abs(arr[idx-1] - x)
-            return idx
-        else
-            return idx - 1
-        end
-    end
-end
-
-
-###############################################################################
-# 3) build_transition_map
-###############################################################################
-# function build_transition_map(
-#     states::Vector{Tuple{Float64, Float64}},
-#     actions::Vector{Float64},
-#     sigma::Float64
-# )
-#     """
-#     x_{t+1} = x + v
-#     v_{t+1} = (v + u) + Normal(0, sigma)
-#     Snap x_{t+1} to the nearest grid point, accumulate probability in v_{t+1}.
-#     """
-#     xvals = unique(sort([s[1] for s in states]))
-#     vvals = unique(sort([s[2] for s in states]))
-#     delta_v = abs(vvals[2] - vvals[1])
-
-#     T = Dict{Tuple{Tuple{Float64,Float64},Float64}, Dict{Tuple{Float64,Float64},Float64}}()
-#     for (x, v) in states
-#         for u in actions
-#             x_next_det = x + v
-#             dist       = Normal(v + u, sigma)
-#             local_dict = Dict{Tuple{Float64,Float64}, Float64}()
-
-#             for vprime in vvals
-#                 p_v = pdf(dist, vprime) * delta_v
-#                 # println("Value for P_v",p_v)
-#                 if p_v > 1e-15
-#                     ix = searchsortednearest(xvals, x_next_det)
-#                     xclosest = xvals[ix]
-#                     local_dict[(xclosest, vprime)] =
-#                         get(local_dict, (xclosest, vprime), 0.0) + p_v
-#                 end
-#             end
-#             T[((x, v), u)] = local_dict
-#         end
-#     end
-#     return T
-# end
-
-###############################################################################
-# 4) Reward construction
+# 2) Functions
 ###############################################################################
 function is_safe(x::Float64, v::Float64)
     return (-1 <= x <= 1) && (-1 <= v <= 1)
 end
 
-# function build_reward(
-#     states::Vector{Tuple{Float64,Float64}},
-#     actions::Vector{Float64}
-# )
-#     R = Dict{Tuple{Tuple{Float64,Float64},Float64}, Float64}()
-#     for (x,v) in states
-#         for u in actions
-#             R[((x,v),u)] = is_safe(x,v) ? 1.0 : 0.0
-#         end
-#     end
-#     return R
-# end
-
-# R = build_reward(states, actions)
-
-
 function R(s,a)
-
     is_safe(s[1],s[2]) ? 1.0 : 0.0
-
 end
-
 
 function  dynamics(x,v,d,u)
      if ! is_safe(x,v) 
@@ -148,96 +62,76 @@ function  dynamics(x,v,d,u)
      [x_next, v_next]
 end
 
-
 function dynamics_rand(x,v,u)
     dist = Normal(0, sigma)
     dynamics(x,v,rand(dist),u) 
 end
 
 
-
-"""
-Generates all states that we will consider in the
-discretized version of the problem.
-"""
-function gen_states()
-    state_vals = Iterators.product(LinRange(-2, 2, num_points_state), LinRange(-2, 2, num_points_state))
+function Mesh_grid(states)  # two Dimension 
+    state_vals = Iterators.product(states[1], states[2])
     [sv for sv ∈ state_vals][:]
 end
 
-states :: Vector{Tuple{Float64, Float64}} = gen_states()
-
-
-####
-
-# the following replacement speeds it by about a factor of 20
-using NearestNeighbors
-
+# ###############################################################################
+# # 3) Transition matrix
+# ###############################################################################
+grid :: Vector{Tuple{Float64, Float64}} = Mesh_grid(states)
 cs2vec(s) = collect(s)
-
-states_matrix::Matrix{Float64} = stack(cs2vec, states)
+states_matrix::Matrix{Float64} = stack(cs2vec, grid)
 tree::KDTree = KDTree(states_matrix)
+@assert first(nn(tree, cs2vec(grid[30]))) == 30
 
-@assert first(nn(tree, cs2vec(states[30]))) == 30
 
-####
-nstates=length(states)
+nstates=length(grid)
 nactions=length(actions)
-
-
 T=zeros(nstates,nactions,nstates)
-nsamples=20
-sigma=0.1
-
 """
-Computes a dynamic program update for a value function (one time step)
+Computes Transition matrix 
 """
 
-    for is ∈ 1:nstates
-        s = states[is]
-        ss = cs2vec(s)
-        for a ∈ 1:nactions
-            for i ∈ 1:nsamples
-                ns = dynamics_rand(s[1],s[2], actions[a])
-                nexts, dists = knn(tree, ns, 1)
-                # weights = 1 ./ (dists.+0.5)
-                T[is,a,first(nexts)] +=1/nsamples   
-                # T[is,a,nexts] +=1/nsamples                 
-            end
+for is ∈ 1:nstates
+    s = grid[is]
+    ss = cs2vec(s)
+    for a ∈ 1:nactions
+        for i ∈ 1:nsamples
+            ns = dynamics_rand(s[1],s[2], actions[a])
+            nexts, dists = knn(tree, ns, 1)
+            # weights = 1 ./ (dists.+0.5)
+            T[is,a,first(nexts)] +=1/nsamples   
+            # T[is,a,nexts] +=1/nsamples                 
         end
     end
+end
 
 @assert (sum(T[1,1,:])) ≈ 1.0
 
+
+println("Starting Optimization")
+
+
 ###############################################################################
-# 5) Solve One Case -> Return arrays for z(s), dual(c2) = g(s), and dual(c3).
+# 4) Solve One Case -> Return arrays for z(s), dual(c2) = g(s), and dual(c3).
 ###############################################################################
-function solve_case(
-    sigma::Float64,
-    center_of_prob::Tuple{Float64,Float64}
-)
 
-    println("\n*********************************************")
-    @info "Solving case: σ=$sigma, α_center=$center_of_prob"
-    println("*********************************************\n")
+println("\n*********************************************")
+@info "Solving case: σ=$sigma"
+println("*********************************************\n")
 
 
-    model = Model(Gurobi.Optimizer)
-    @variable(model, z[(s in 1:nstates), a in 1:nactions] >= 0)
-    @variable(model, y[(s in 1:nstates), a in 1:nactions] >= 0)
+model = Model(Gurobi.Optimizer)
+@variable(model, z[(s in 1:nstates), a in 1:nactions] >= 0)
+@variable(model, y[(s in 1:nstates), a in 1:nactions] >= 0)
 
 
 #     # c1: total measure of z is 1
 #     # @constraint(model, c1, sum(z[s,a] for s in states, a in actions) == 1)
 
-
-    # c2: flow constraints
-    @constraint(model, c2[j in 1:nstates],
-        sum(z[s, a] * T[s,a,j] for s in 1:nstates, a in 1:nactions)
-        == sum(z[j, a2] for a2 in 1:nactions)
-    )
-
-
+# c2: flow constraints
+@constraint(model, c2[j in 1:nstates],
+    sum(z[s, a] * T[s,a,j] for s in 1:nstates, a in 1:nactions)
+    == sum(z[j, a2] for a2 in 1:nactions)
+)
 
     # c3: alpha distribution
     alpha = 1.0 / length(states)
@@ -248,117 +142,18 @@ function solve_case(
         == alpha
     )
 
-    # Objective
-    @objective(model, Max, sum(z[s,a] * R(states[s],actions[a]) for s in 1:nstates, a in 1:nactions))
 
-    @time optimize!(model)
+# Objective
+@objective(model, Max, sum(z[s,a] * R(grid[s],actions[a]) for s in 1:nstates, a in 1:nactions))
 
-    stat = termination_status(model)
-    println("Solver status: ", stat)
-    if stat == MOI.OPTIMAL
-        println("Objective value = ", objective_value(model))
-    else
-        println("No optimal solution found. status = ", stat)
-    end
+@time optimize!(model)
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # 1) Retrieve primal solution z(s)
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    z_sol = Dict{Tuple{Float64,Float64}, Float64}()
-    for s in states
-        z_sol[s] = sum(value(z[s,a]) for a in actions)
-    end
-
-    xvals_sorted = sort(unique([s[1] for s in states]))
-    vvals_sorted = sort(unique([s[2] for s in states]))
-    Nx = length(xvals_sorted)
-    Ny = length(vvals_sorted)
-
-    # Build Nx×Ny matrix with occupation measure "union" \sum_a z[s,a]
-    occupation_union = zeros(Nx, Ny)
-    for i in 1:Nx
-        for j in 1:Ny
-            st = (xvals_sorted[i], vvals_sorted[j])
-            occupation_union[i,j] = z_sol[st]
-        end
-    end
-
-    # We will return these in "surface" format:
-    X = [xvals_sorted[i] for j in 1:Ny, i in 1:Nx]  # shape (Ny, Nx)
-    Y = [vvals_sorted[j] for j in 1:Ny, i in 1:Nx]  # shape (Ny, Nx)
-    Z_occup = occupation_union'                     # shape (Ny, Nx)
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # 2) Retrieve dual variables for c2 (flow) and c3 (alpha-dist).
-    #    Typically, c2 is "the" MDP value function g(s) in strong duality.
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    dual_c2 = [dual(c2[j]) for j in states]   # This is "g(s)" in many MDP contexts
-    dual_c3 = [dual(c3[j]) for j in states]   # Another set of dual variables (often "h(s)")
-
-    # Reshape them into Nx×Ny, then transpose
-    g_map = reshape(dual_c2, Nx, Ny)'   # "the actual value function" in the usual sense
-    h_map = reshape(dual_c3, Nx, Ny)'   # additional dual (like a bias or offset)
-
-    return X, Y, Z_occup, g_map, h_map
+stat = termination_status(model)
+println("Solver status: ", stat)
+if stat == MOI.OPTIMAL
+    println("Objective value = ", objective_value(model))
+else
+    println("No optimal solution found. status = ", stat)
 end
 
-
-###############################################################################
-# 6) Main: Plot z(s), g(s), and h(s)
-###############################################################################
-function main_3D()
-    fig = GLMakie.Figure(resolution=(1800,600))
-
-    # Solve for the single case
-    s = sigma_list[1]
-    c = center_list[1]
-    X, Y, Z_occup, g_map, h_map = solve_case(s, c)
-
-    # "Safe set" boundary just for visual reference
-    safe_x = [-1, 1, 1, -1, -1]
-    safe_v = [-1, -1, 1, 1, -1]
-    safe_z = zeros(length(safe_x))
-
-    # --- Subplot (1,1): occupation measure z(s) ---
-    ax1 = fig[1,1] = GLMakie.Axis3(
-        fig,
-        xlabel="Position (x)",
-        ylabel="Velocity (v)",
-        zlabel="z(s)",
-        title="z(s)"
-    )
-    surf_plot1 = GLMakie.surface!(ax1, X, Y, Z_occup, colormap=:plasma)
-    GLMakie.lines!(ax1, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    # --- Subplot (1,2): g(s) = dual(c2) ---
-    ax2 = fig[1,2] = GLMakie.Axis3(
-        fig,
-        xlabel="Position (x)",
-        ylabel="Velocity (v)",
-        zlabel="dual from constraint one",
-        title="Dual 1"
-    )
-    surf_plot2 = GLMakie.surface!(ax2, X, Y, g_map, colormap=:viridis)
-    GLMakie.lines!(ax2, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    # --- Subplot (1,3): h(s) = dual(c3) ---
-    #   Shown here just so you can see it. Often 'h(s)' is a bias in multi-chain problems.
-    ax3 = fig[1,3] = GLMakie.Axis3(
-        fig,
-        xlabel="Position (x)",
-        ylabel="Velocity (v)",
-        zlabel="Dual from constraint two",
-        title="Dual 2"
-    )
-    surf_plot3 = GLMakie.surface!(ax3, X, Y, h_map, colormap=:hot)
-    GLMakie.lines!(ax3, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    GLMakie.display(fig)
-    println("\nAll subplots shown in a single 1×3 window.")
-end
-
-main_3D()
-
-
-
-
+ 
