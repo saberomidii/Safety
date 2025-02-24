@@ -8,249 +8,242 @@ using Random
 using NearestNeighbors
 using JuMP
 import Gurobi
-using GLMakie
-using FileIO   # for GLMakie.save if needed
+using FileIO
 using Base: mkpath
 
 ##########################################################
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
-ENV["GUROBI_HOME"] = "/Library/gurobi1200/macos_universal2"
+
+# Set Gurobi WLS license credentials
+ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
+ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
+ENV["GRB_LICENSEID"] = "2611020"
 
 # Optional: set a random seed if desired
-Random.seed!(1234)
+# Random.seed!(2)
 
-# Single noise standard deviation
-const sigma = 0.1
+# System parameters
+dt = 0.1  # time step
+g = 9.81  # gravity
+m = 1.0   # mass
+l = 1.0   # length
 
-# Number of states in each dimension
-const num_points_state = 100
-positions  = collect(LinRange(-2, 2, num_points_state))   # possible x-values
-velocities = collect(LinRange(-2, 2, num_points_state))   # possible v-values
+# State space discretization
+nx = 50   # number of grid points in x-dimension
+ny = 50   # number of grid points in y-dimension
+xmin, xmax = -5.0, 5.0
+ymin, ymax = -5.0, 5.0
+x_grid = range(xmin, xmax, length=nx)
+y_grid = range(ymin, ymax, length=ny)
 
-# Cartesian product of (x, v) forms the entire state space
-const states_2d  = [(x, v) for x in positions for v in velocities]
-const nstates    = length(states_2d)
+# Action space discretization
+na = 5    # number of discrete actions
+amin, amax = -10.0, 10.0
+actions = range(amin, amax, length=na)
 
-# Action discretization
-const num_points_action = 10
-const actions = collect(LinRange(-1, 1, num_points_action))
-const nactions = length(actions)
+# Noise parameters
+noise_std = 0.1  # standard deviation of noise
 
-println("Number of states  = $nstates")
-println("Number of actions = $nactions")
-
-# Number of random samples used when constructing transitions
-const nsamples = 50
+# Create state-action pairs
+states = [(x, y) for x in x_grid for y in y_grid]
+sa_pairs = [(s, a) for s in states for a in actions]
+num_states = length(states)
+num_actions = length(actions)
 
 ##########################################################
-# 2) Build the transition probabilities T[s, a, s_next]
+# 2) Dynamics and reward functions
 ##########################################################
-# T is a 3D array of size (nstates × nactions × nstates),
-# T[s, a, s_next] = Probability of going to s_next from s under action a.
 
-function is_safe(x::Float64, v::Float64)
-    # Example "safe" region: x in [-1,1], v in [-1,1]
-    return (-1 <= x <= 1) && (-1 <= v <= 1)
+# Dynamics function - double integrator
+function dynamics(s, a, w)
+    x, y = s
+    
+    # Apply control and noise
+    x_next = x + dt * y
+    y_next = y + dt * (a + w) / m
+    
+    # Apply bounds
+    x_next = clamp(x_next, xmin, xmax)
+    y_next = clamp(y_next, ymin, ymax)
+    
+    return (x_next, y_next)
 end
 
-# Continuous (noisy) dynamics:
-#   - If (x,v) is outside the safe region, remain there.
-#   - Otherwise x_{t+1} = x + v, v_{t+1} = (v + u) + noise
-function dynamics_rand(x::Float64, v::Float64, u::Float64)
-    if !is_safe(x, v)
-        return (x, v)   # no movement if outside the safe region
-    else
-        d     = rand(Normal(0, sigma))
-        xnext = x + v
-        vnext = (v + u) + d
-        return (xnext, vnext)
-    end
+# Reward function
+function reward(s, a)
+    x, y = s
+    # Negative quadratic cost on state and action
+    return -(x^2 + 0.1*y^2 + 0.01*a^2)
 end
 
-# Build a KD-tree for snapping continuous next-states to the nearest discrete state.
-states_matrix = hcat([collect(s) for s in states_2d]...)  # shape: 2 x nstates
-tree = KDTree(states_matrix)
+##########################################################
+# 3) Transition probability calculation
+##########################################################
 
-println("\nBuilding transition probabilities T[s, a, s_next] ...")
+# Normal distribution for noise
+noise_dist = Normal(0, noise_std)
 
-# Initialize T array: T[s, a, s_next]
-T = zeros(Float64, nstates, nactions, nstates)
+# Function to find nearest state in the grid
+function find_nearest_state(s)
+    # Create KD-tree from states array for efficient nearest neighbor search
+    kdtree = KDTree(reshape(reinterpret(Float64, states), (2, num_states)))
+    
+    # Find the index of the nearest state
+    idx, dist = nn(kdtree, collect(Float64, s))
+    
+    return states[idx[1]]
+end
 
-# (Compute Transition Matrix)
-for is in 1:nstates
-    s = states_2d[is]   # e.g., s = (x, v)
-    for a in 1:nactions
-        for i in 1:nsamples
-            (xn, vn) = dynamics_rand(s[1], s[2], actions[a])
-            # For knn, pass a 2-element Vector, not a Tuple
-            idxs, dists = knn(tree, [xn, vn], 1)
-            T[is, a, first(idxs)] += 1.0 / nsamples
+# Calculate transition probabilities
+function calculate_transition_probs()
+    # Number of samples for Monte Carlo
+    num_samples = 100
+    
+    # Initialize transition probability matrix
+    P = zeros(num_states, num_states, num_actions)
+    
+    # Create mapping from state to index
+    state_to_idx = Dict(state => i for (i, state) in enumerate(states))
+    
+    # For each state-action pair
+    for (s_idx, s) in enumerate(states)
+        for (a_idx, a) in enumerate(actions)
+            # Monte Carlo sampling for stochastic transitions
+            next_states = []
+            for _ in 1:num_samples
+                # Sample noise
+                w = rand(noise_dist)
+                
+                # Apply dynamics
+                s_next = dynamics(s, a, w)
+                
+                # Find nearest grid point
+                s_next_grid = find_nearest_state(s_next)
+                
+                push!(next_states, s_next_grid)
+            end
+            
+            # Count occurrences of each next state
+            for s_next in next_states
+                s_next_idx = state_to_idx[s_next]
+                P[s_idx, s_next_idx, a_idx] += 1/num_samples
+            end
         end
     end
+    
+    return P
 end
 
-@assert sum(T[1,1,:]) ≈ 1.0  # Checks row sums to ~1
-println("Done building T.\n")
-
-##########################################################
-# 3) Reward function
-##########################################################
-# +1 if in safe region, else 0
-function reward(s::Tuple{Float64, Float64}, a::Float64)
-    return is_safe(s[1], s[2]) ? 1.0 : 0.0
+# Calculate reward for each state-action pair
+function calculate_rewards()
+    R = zeros(num_states, num_actions)
+    
+    for (s_idx, s) in enumerate(states)
+        for (a_idx, a) in enumerate(actions)
+            R[s_idx, a_idx] = reward(s, a)
+        end
+    end
+    
+    return R
 end
 
 ##########################################################
-# 4) Solve the linear program (flow constraints)
+# 4) Linear Programming for Average Reward
 ##########################################################
-function solve_case()
-    println("*************************************************")
-    println("Solving case with sigma = $sigma")
-    println("*************************************************")
 
-    # Setup model
+function solve_average_reward()
+    println("Calculating transition probabilities...")
+    P = calculate_transition_probs()
+    
+    println("Calculating rewards...")
+    R = calculate_rewards()
+    
+    println("Setting up linear program...")
+    
+    # Create JuMP model with Gurobi solver
     model = Model(Gurobi.Optimizer)
-
-    # Define z[s, a] and y[s, a]
-    @variable(model, z[1:nstates, 1:nactions] >= 0)
-    @variable(model, y[1:nstates, 1:nactions] >= 0)
-
-    # c1: total measure of z is 1
-    @constraint(model, c1, sum(z[s,a] for s in 1:nstates, a in 1:nactions) == 1)
-
-    # c2: flow constraints
-    @constraint(model, c2[j in 1:nstates],
-        sum(z[s,a] * T[s,a,j] for s in 1:nstates, a in 1:nactions)
-        == sum(z[j,a2]       for a2 in 1:nactions)
+    
+    # Variables: state-action occupancy measures
+    @variable(model, x[1:num_states, 1:num_actions] >= 0)
+    
+    # Variable: average reward
+    @variable(model, rho)
+    
+    # Objective: maximize average reward
+    @objective(model, Max, rho)
+    
+    # Constraint: total probability = 1
+    @constraint(model, sum(x) == 1)
+    
+    # Bellman flow constraints
+    for j in 1:num_states
+        @constraint(model, 
+            sum(x[j, :]) == 
+            sum(x[i, a] * P[i, j, a] for i in 1:num_states, a in 1:num_actions)
+        )
+    end
+    
+    # Average reward constraint
+    @constraint(model, 
+        rho == sum(x[s, a] * R[s, a] for s in 1:num_states, a in 1:num_actions)
     )
-
-    # c3: alpha distribution
-    # For demonstration, alpha = 1 / nstates (uniform)
-    alpha_dist = 1.0 / nstates
-    @constraint(model, c3[j in 1:nstates],
-        sum(z[j,a] for a in 1:nactions)
-      + sum(y[j,a] for a in 1:nactions)
-      - sum(y[s,a] * T[s,a,j] for s in 1:nstates, a in 1:nactions)
-        == alpha_dist
-    )
-
-    # Objective: maximize sum_{s,a} z[s,a] * reward(s,a)
-    @objective(model, Max, sum(z[s,a]*reward(states_2d[s], actions[a])
-                               for s in 1:nstates, a in 1:nactions))
-
+    
+    # Solve the model
+    println("Solving linear program...")
     optimize!(model)
-    stat = termination_status(model)
-    println("Solver status: $stat")
-    if stat == MOI.OPTIMAL
-        println("Optimal objective value = ", objective_value(model))
+    
+    if termination_status(model) == MOI.OPTIMAL
+        println("Optimal solution found!")
+        
+        # Extract optimal policy and value function
+        x_opt = value.(x)
+        rho_opt = value(rho)
+        
+        # Compute policy from occupancy measures
+        policy = zeros(Int, num_states)
+        for s in 1:num_states
+            # For each state, find the action with highest occupancy measure
+            _, policy[s] = findmax(x_opt[s, :])
+        end
+        
+        return rho_opt, policy, x_opt
     else
-        println("No optimal solution found. status = ", stat)
+        println("No optimal solution found. Status: ", termination_status(model))
+        return nothing, nothing, nothing
     end
-
-    # Retrieve primal solution: z_sol[s] = sum_{a} z[s,a]
-    z_sol = zeros(nstates)
-    for s in 1:nstates
-        z_sol[s] = sum(value(z[s,a]) for a in 1:nactions)
-    end
-
-    # Build Nx×Ny matrix for occupation measure z(s).
-    Nx = length(positions)
-    Ny = length(velocities)
-    Z_occup = zeros(Nx, Ny)
-
-    # The indexing in states_2d is row-major: 
-    # states_2d[(i-1)*Ny + j] = (positions[i], velocities[j])
-    for i in 1:Nx
-        for j in 1:Ny
-            sidx = (i - 1)*Ny + j
-            Z_occup[i,j] = z_sol[sidx]
-        end
-    end
-
-    # Prepare meshgrid arrays (X,Y) for plotting
-    X = [positions[i]  for j in 1:Ny, i in 1:Nx]  # Nx×Ny
-    Y = [velocities[j] for j in 1:Ny, i in 1:Nx]
-
-    # Retrieve duals for c2, c3
-    dual_c2_vals = -[dual(c2[j]) for j in 1:nstates]
-    dual_c3_vals = -[dual(c3[j]) for j in 1:nstates]
-
-    # Reshape them into Nx×Ny
-    G_map = zeros(Nx, Ny)
-    H_map = zeros(Nx, Ny)
-    for i in 1:Nx
-        for j in 1:Ny
-            sidx = (i - 1)*Ny + j
-            G_map[i,j] = dual_c2_vals[sidx]
-            H_map[i,j] = dual_c3_vals[sidx]
-        end
-    end
-
-    return X, Y, Z_occup, G_map, H_map
 end
 
 ##########################################################
-# 5) Plot in 3D (z, g, h) side-by-side (No Colorbars)
-#    Then save results to a new directory "results/"
+# 5) Main execution
 ##########################################################
-function main_3D()
-    # Solve the LP
-    X, Y, Z_occup, G_map, H_map = solve_case()
 
-    # "Safe set" boundary lines (for reference)
-    safe_x = [-1, 1, 1, -1, -1]
-    safe_v = [-1, -1, 1, 1, -1]
-    safe_z = zeros(length(safe_x))
-
-    # Create a figure with 3 subplots (no colorbars)
-    fig = Figure(resolution=(1800, 600))
-
-    # (1) Occupation measure z(s)
-    ax1 = Axis3(fig[1,1],
-        title  = "sum(value(z[s,a]) for a in 1:nactions",
-        xlabel = "Position (x)",
-        ylabel = "Velocity (v)",
-        zlabel = "Value"
-    )
-    # Makie uses row-major for surface, so pass Z_occup' (transpose)
-    surface!(ax1, X, Y, Z_occup', colormap=:plasma)
-    lines!(ax1, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    # (2) Dual w.r.t. flow constraint: G_map
-    ax2 = Axis3(fig[1,2],
-        title  = "Dual Constraint 2",
-        xlabel = "Position (x)",
-        ylabel = "Velocity (v)",
-        zlabel = "Value"
-    )
-    surface!(ax2, X, Y, G_map', colormap=:viridis)
-    lines!(ax2, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    # (3) Dual w.r.t. alpha-dist constraint: H_map
-    ax3 = Axis3(fig[1,3],
-        title  = "Dual Constraint 3",
-        xlabel = "Position (x)",
-        ylabel = "Velocity (v)",
-        zlabel = "Value"
-    )
-    surface!(ax3, X, Y, H_map', colormap=:hot)
-    lines!(ax3, safe_x, safe_v, safe_z, color=:red, linewidth=3)
-
-    display(fig)
-    println("\nAll subplots shown in one row (no colorbars).")
-
-    # -------------------------------------------------------
-    # Create a "results" directory, save the figure there.
-    # -------------------------------------------------------
-    mkpath("results")  # Create the directory if it doesn't exist
-    GLMakie.save("results/plot.png", fig)  # Save as a .png image
-    println("Figure saved to results/plot.png")
-
-    return fig
+function main()
+    println("Starting Average Reward optimization for Double-Integrator System")
+    
+    # Create results directory
+    results_dir = joinpath(@__DIR__, "results")
+    mkpath(results_dir)
+    
+    # Solve the average reward problem
+    rho, policy, occupancy = solve_average_reward()
+    
+    if !isnothing(rho)
+        println("Optimal average reward: ", rho)
+        
+        # Save results
+        open(joinpath(results_dir, "results.txt"), "w") do f
+            println(f, "Optimal average reward: ", rho)
+            println(f, "Policy:")
+            for (s_idx, s) in enumerate(states)
+                a_idx = policy[s_idx]
+                println(f, "State: ", s, " → Action: ", actions[a_idx])
+            end
+        end
+        
+        println("Results saved to: ", joinpath(results_dir, "results.txt"))
+    end
 end
 
-##########################################################
-# 6) Run
-##########################################################
-main_3D()
+# Run the main function
+main()
