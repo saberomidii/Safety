@@ -28,7 +28,7 @@ println("License credentials set")
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 0.15
+const sigma = 0.25
 
 const trashhold_for_transit=0.001
 
@@ -41,11 +41,11 @@ const u_min= -3.0
 const u_max=  3.0
 
 
-const num_points_action = 5
-const num_points_state = 51
+const num_points_action = 10
+const num_points_state = 101
 
 # Number of random samples used when constructing transitions
-const nsamples = 1000
+const nsamples = 100
 
 # Number of states in each dimension
 theta = collect(LinRange(theta_min, theta_max, num_points_state))  # Possible theta values
@@ -237,7 +237,7 @@ function solve_case()
         end
     end
 
-    return X, Y, Z_occup, G_map, H_map
+    return objective_value(model), X, Y, Z_occup, G_map, H_map
 end
 
 ##########################################################
@@ -251,7 +251,8 @@ function main_3D()
     println("*************************************************")
     
     # Call solve_case() and capture all the returned values
-    rho_opt, occup_measures, value_function = solve_case()
+   
+    objective, X, Y, Z_occup, G_map, H_map = solve_case()
     
     # Extract any other values you need for results
     
@@ -265,23 +266,27 @@ function main_3D()
     # Save optimization results
     open(joinpath(results_dir, "optimization_results.txt"), "w") do f
         println(f, "Optimization run on: $timestamp")
-        println(f, "Sigma: 0.15")
-        println(f, "Average reward: $rho_opt")
+        println(f, "Sigma: $sigma")
+        println(f, "Average reward: $objective")
         # Add other parameters you want to save
     end
     
     # Save occupancy measures data
-    if !isnothing(occup_measures)
-        writedlm(joinpath(results_dir, "occup_measures.csv"), occup_measures, ',')
+    if !isnothing(Z_occup)
+        writedlm(joinpath(results_dir, "occup_measures_Z_occup.csv"), Z_occup, ',')
     end
     
     # Save value function data if available
-    if !isnothing(value_function)
-        writedlm(joinpath(results_dir, "value_function.csv"), value_function, ',')
+    if !isnothing(G_map)
+        writedlm(joinpath(results_dir, "G_map.csv"), G_map, ',')
     end
     
+    if !isnothing(H_map)
+	    writedlm(jointpath(result_dir, "H_map.csv"), H_map, ',')
+    end
+
     # Construct grid data for plotting elsewhere if needed
-    X, Y = construct_grid()  # You'll need to implement this function
+    #X, Y = construct_grid()  # You'll need to implement this function
     writedlm(joinpath(results_dir, "X_grid.csv"), X, ',')
     writedlm(joinpath(results_dir, "Y_grid.csv"), Y, ',')
     
