@@ -282,7 +282,7 @@ function main_3D()
     end
     
     if !isnothing(H_map)
-	    writedlm(jointpath(result_dir, "H_map.csv"), H_map, ',')
+	    writedlm(joinpath(results_dir, "H_map.csv"), H_map, ',')
     end
 
     # Construct grid data for plotting elsewhere if needed
