@@ -28,9 +28,9 @@ println("License credentials set")
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 0.25
+const sigma = 1
 
-const trashhold_for_transit=0.001
+const treshold_for_transit=0.001
 
 const theta_min=-0.35
 const theta_max=0.35
@@ -45,7 +45,7 @@ const num_points_action = 10
 const num_points_state = 101
 
 # Number of random samples used when constructing transitions
-const nsamples = 100
+const nsamples = 1000
 
 # Number of states in each dimension
 theta = collect(LinRange(theta_min, theta_max, num_points_state))  # Possible theta values
@@ -88,7 +88,7 @@ function dynamics_rand(theta::Float64, theta_dot::Float64, u::Float64)
         g=10
         m=2
         l=1
-        dt=0.1
+        dt=0.01
         theta_next = theta + theta_dot*dt
         theta_dot_next = theta_dot + ((g/l*sin(theta) + (1/m*l^2)*u) + d)*dt
         return (theta_next, theta_dot_next, d)
@@ -110,11 +110,20 @@ for is in 1:nstates
     s = states_2d[is]   # e.g., s = (x, v)
     for a in 1:nactions
         for i in 1:nsamples
+	    xn=s[1]
+	    vn=s[2]
+	    j=1
+	    while true	
             (xn, vn, disturbance) = dynamics_rand(s[1], s[2], actions[a])
-            disturbance_list[is,a,i]= disturbance
+            #disturbance_list[is,a,i]= disturbance
             # For knn, pass a 2-element Vector, not a Tuple
-            idxs, dists = knn(tree, [xn, vn], 1)
-            T[is, a, first(idxs)] += 1.0 / nsamples
+	    idxs, dists = knn(tree, [xn, vn], 1)
+	             if first(idxs) != is || j > 10 
+		                  T[is, a, first(idxs)] += 1.0 / nsamples
+		                  break
+	             end
+	    j+=1
+            end
         end
     end
 end
@@ -126,7 +135,7 @@ for action in 1:num_points_action
 @assert all(i -> sum(T[i, action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
 end
 
-T .= ifelse.(abs.(T) .< trashhold_for_transit, 0.0, T)
+T .= ifelse.(abs.(T) .< treshold_for_transit, 0.0, T)
 
 println("The maximum disturbance value is ",maximum(disturbance_list))
 
@@ -149,10 +158,7 @@ end
 ##########################################################
 # 4) Solve the linear program (flow constraints)
 ##########################################################
-function solve_case()
-    println("*************************************************")
-    println("Solving case with sigma = $sigma")
-    println("*************************************************")    
+function solve_case()   
     # Set Gurobi license credentials right before creating the model
     ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
     ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
@@ -247,7 +253,7 @@ end
 function main_3D()
     # Solve the optimization problem
     println("*************************************************")
-    println("Solving case with sigma = 0.15")
+    println("Solving case with sigma = $sigma")
     println("*************************************************")
     
     # Call solve_case() and capture all the returned values
