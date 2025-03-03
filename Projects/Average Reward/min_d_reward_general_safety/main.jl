@@ -18,11 +18,11 @@ using Base: mkpath
 ##########################################################
 # Set Gurobi WLS license credentials - add these at the to
 # # At the very beginning of your file, before any other code executes:
-println("Setting Gurobi license credentials...")
-ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
-ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
-ENV["GRB_LICENSEID"] = "2611020"
-println("License credentials set")
+#println("Setting Gurobi license credentials...")
+#ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
+#ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
+#ENV["GRB_LICENSEID"] = "2611020"
+#println("License credentials set")
 # Optional: set a random seed if desired
 # Random.seed!(2)
 
@@ -30,9 +30,9 @@ println("License credentials set")
 const sigma = 0.0
 
 const treshold_for_transit=0.001
-
-const x_1_min=-1.0
-const x_1_max=5.0
+ 
+const x_1_min=- 1.0
+const x_1_max=  5.0
 const x_2_min= -5.0
 const x_2_max=  5.0
 
@@ -40,11 +40,11 @@ const u_min= -2.0
 const u_max=  2.0
 
 
-const num_points_action = 10
+const num_points_action = 11
 
-const num_points_state = 161
+const num_points_state = 101
 
-const num_points_state =161
+const num_points_state =101
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -118,7 +118,7 @@ for is in 1:nstates
 	             if first(idxs) != is || j > 10 
 		                  T[is, a, first(idxs)] += 1.0 / nsamples
 		                  break
-	             end
+	            end   # Create meshgrid-like structure end
 	    j+=1
             end
         end
@@ -160,7 +160,6 @@ function solve_case()
     ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
     ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
     ENV["GRB_LICENSEID"] = "2611020"
-
 
     # Setup model
     model = Model(Gurobi.Optimizer)
