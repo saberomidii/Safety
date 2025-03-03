@@ -41,7 +41,7 @@ const u_max=  2.0
 
 
 const num_points_action = 10
-const num_points_state = 161
+const num_points_state = 81
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -83,7 +83,7 @@ function dynamics_rand(x::Float64, v::Float64, u::Float64)
     if !is_safe(x, v)
         return (x, v)   # no movement if outside the safe region
     else
-        dt=0.001
+        dt=0.1
         x1_next = x + v*dt
         x2_next = v + u*dt
         return (x1_next, x2_next)
@@ -205,8 +205,8 @@ function solve_case()
     end
 
     # Build Nx×Ny matrix for occupation measure z(s).
-    Nx = length(theta)
-    Ny = length(theta_dot)
+    Nx = length(x1)
+    Ny = length(x2)
     Z_occup = zeros(Nx, Ny)
 
     # The indexing in states_2d is row-major: 
@@ -219,8 +219,8 @@ function solve_case()
     end
 
     # Prepare meshgrid arrays (X,Y) for plotting
-    X = [theta[i]  for j in 1:Ny, i in 1:Nx]  # Nx×Ny
-    Y = [theta_dot[j] for j in 1:Ny, i in 1:Nx]
+    X = [x1[i]  for j in 1:Ny, i in 1:Nx]  # Nx×Ny
+    Y = [x2[j] for j in 1:Ny, i in 1:Nx]
 
     # Retrieve duals for c2, c3
     dual_c2_vals = -[dual(c2[j]) for j in 1:nstates]
@@ -299,12 +299,13 @@ end
 ##########################################################
 function construct_grid()
     # Use the same grid parameters as in your original problem
-    nx = 51  # Use the same values as in your state space discretization
-    ny = 51
+    nx = num_points_state  # Use the same values as in your state space discretization
+    ny = num_points_state
     
     # These ranges should match your state space
-    xmin, xmax = -2.0, 2.0
-    ymin, ymax = -2.0, 2.0
+
+    xmin, xmax = x_1_min, x_1_max
+    ymin, ymax = -x_2_min, x_2_max
     
     # Create a grid
     x = range(xmin, xmax, length=nx)
