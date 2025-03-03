@@ -118,7 +118,7 @@ function dynamics_rand(theta::Float64, theta_dot::Float64, u::Float64)
         g=10
         m=2
         l=1
-        dt=0.01
+        dt=0.1
         theta_next = theta + theta_dot*dt
         theta_dot_next = theta_dot + ((g/l*sin(theta) + (1/m*l^2)*u) + d)*dt
         return (theta_next, theta_dot_next, d)
@@ -167,7 +167,7 @@ for is in 1:nstates
             #disturbance_list[is,a,i]= disturbance
             # For knn, pass a 2-element Vector, not a Tuple
 	    idxs, dists = knn(tree, [xn, vn], 1)
-	             if first(idxs) != is || j > 10 
+	             if first(idxs) != is || j > 100 
 		                  T[is, a, first(idxs)] += 1.0 / nsamples
 		                  break
 	             end
@@ -250,7 +250,56 @@ function solve_case()
     if stat == MOI.OPTIMAL
         println("Optimal objective value = ", objective_value(model))
     else
-        println("No optimal solution found. status = ", stat)
+        println("No optimal solution f##########################################################
+# 5) Plot in 3D (z, g, h) side-by-side (No Colorbars)
+#    Then save results to a new directory "results/"
+##########################################################
+function main_3D()
+    # Solve the optimization problem
+    println("*************************************************")
+    println("Solving case with sigma = 0.15")
+    println("*************************************************")
+    
+    # Call solve_case() and capture all the returned values
+   
+    objective, X, Y, Z_occup, G_map, H_map = solve_case()
+    
+    # Extract any other values you need for results
+    
+    # Create a timestamped folder for results
+    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
+    results_dir = joinpath(@__DIR__, "results", string(sigma))
+    mkpath(results_dir)
+    
+    println("Saving results to: $results_dir")
+    
+    # Save optimization results
+    open(joinpath(results_dir, "optimization_results.txt"), "w") do f
+        println(f, "Optimization run on: $timestamp")
+        println(f, "Sigma: $sigma")
+        println(f, "Average reward: $objective")
+        # Add other parameters you want to save
+    end
+    
+    # Save occupancy measures data
+    if !isnothing(Z_occup)
+        writedlm(joinpath(results_dir, "occup_measures_Z_occup.csv"), Z_occup, ',')
+    end
+    
+    # Save value function data if available
+    if !isnothing(G_map)
+        writedlm(joinpath(results_dir, "G_map.csv"), G_map, ',')
+    end
+    
+    if !isnothing(H_map)
+	    writedlm(jointpath(result_dir, "H_map.csv"), H_map, ',')
+    end
+
+    # Construct grid data for plotting elsewhere if needed
+    #X, Y = construct_grid()  # You'll need to implement this function
+    writedlm(joinpath(results_dir, "X_grid.csv"), X, ',')
+    writedlm(joinpath(results_dir, "Y_grid.csv"), Y, ',')
+    ound. status = ", stat)
     end
 
     # Retrieve primal solution: z_sol[s] = sum_{a} z[s,a]
