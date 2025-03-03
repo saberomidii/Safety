@@ -315,7 +315,7 @@ function construct_grid()
     x = range(xmin, xmax, length=nx)
     y = range(ymin, ymax, length=ny)
     
-    # Create meshgrid-like structure
+
     X = [i for i in x, j in 1:ny]
     Y = [j for i in 1:nx, j in y]
     
