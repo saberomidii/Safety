@@ -41,11 +41,10 @@ const u_max=  2.0
 
 
 const num_points_action = 10
-<<<<<<< HEAD
-const num_points_state = 81
-=======
-const num_points_state =81
->>>>>>> dfae6b9 (the main filed is modeifed to debug error theta)
+
+const num_points_state = 161
+
+const num_points_state =161
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
