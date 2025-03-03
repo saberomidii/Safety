@@ -1,8 +1,6 @@
 ##########################################################
 # Average Reward and Linear Programming for Double-Integrator Systems
 ##########################################################
-using Dates
-using DelimitedFiles  # For saving data to CSV files
 using Distributions
 using StatsFuns
 using Statistics
@@ -10,28 +8,22 @@ using Random
 using NearestNeighbors
 using JuMP
 import Gurobi
-using FileIO   # for saving results if needed
+using GLMakie
+using FileIO   # for GLMakie.save if needed
 using Base: mkpath
+
 ##########################################################
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
-
-# Set Gurobi WLS license credentials - add these at the to
-# # At the very beginning of your file, before any other code executes:
-println("Setting Gurobi license credentials...")
-ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
-ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
-ENV["GRB_LICENSEID"] = "2611020"
-println("License credentials set")
+ENV["GUROBI_HOME"] = "/Library/gurobi1200/macos_universal2"
 
 # Optional: set a random seed if desired
-<<<<<<< HEAD
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 1
+const sigma = 0.15
 
-const treshold_for_transit=0.001
+const trashhold_for_transit=0.001
 
 const theta_min=-0.35
 const theta_max=0.35
@@ -42,8 +34,8 @@ const u_min= -3.0
 const u_max=  3.0
 
 
-const num_points_action = 10
-const num_points_state = 101
+const num_points_action = 5
+const num_points_state = 51
 
 # Number of random samples used when constructing transitions
 const nsamples = 1000
@@ -51,34 +43,6 @@ const nsamples = 1000
 # Number of states in each dimension
 theta = collect(LinRange(theta_min, theta_max, num_points_state))  # Possible theta values
 theta_dot = collect(LinRange(theta_dot_min, theta_dot_max, num_points_state))  # Possible theta_dot values
-=======
-# Random.seed!(1234)
-
-# Single noise standard deviation
-const sigma = 0.05
-
-## double integrator 
-const x_min=-2
-const x_max=2
-const v_min=-2
-const v_max=2
-
-const u_min=-1
-const u_max=1
-
-
-
-const num_points_action = 10
-const num_points_state = 100
-
-# Number of random samples used when constructing transitions
-const nsamples = 50
-
-# Number of states in each dimension
-
-positions  = collect(LinRange(x_min, x_max, num_points_state))   # possible x-values
-velocities = collect(LinRange(v_min, v_max, num_points_state))   # possible v-values
->>>>>>> bdd96c8 (feb 24th and lic file is added in the project foldere)
 
 # Cartesian product of (x, v) forms the entire state space
 const states_2d  = [(x, v) for x in theta for v in theta_dot]
@@ -100,7 +64,6 @@ println("Number of actions = $nactions")
 
 function is_safe(x::Float64, v::Float64)
     # Example "safe" region: x in [-1,1], v in [-1,1]
-<<<<<<< HEAD
     return (-0.30<= x <= 0.30) && (-0.60<= v <= 0.60)
 end
 
@@ -118,31 +81,12 @@ function dynamics_rand(theta::Float64, theta_dot::Float64, u::Float64)
         g=10
         m=2
         l=1
-        dt=0.01
+        dt=0.1
         theta_next = theta + theta_dot*dt
         theta_dot_next = theta_dot + ((g/l*sin(theta) + (1/m*l^2)*u) + d)*dt
         return (theta_next, theta_dot_next, d)
-=======
-    return (-1<= x <= 1) && (-1<= v <= 1)
-end
-
-# Continuous (noisy) dynamics:
-#   - If (x,v) is outside the safe region, remain there.
-#   - Otherwise x_{t+1} = x + v, v_{t+1} = (v + u) + noise
-
-# double integrator dynamic
-function dynamics_rand(x::Float64, v::Float64, u::Float64)
-    if !is_safe(x, v)
-        return (x, v)   # no movement if outside the safe region
-    else
-        d  = rand(Normal(0, sigma))
-        xnext = x + v
-        vnext = v + u + d  
-        return (xnext, vnext)
->>>>>>> bdd96c8 (feb 24th and lic file is added in the project foldere)
     end
 end
-
 
 # Build a KD-tree for snapping continuous next-states to the nearest discrete state.
 states_matrix = hcat([collect(s) for s in states_2d]...)  # shape: 2 x nstates
@@ -159,20 +103,11 @@ for is in 1:nstates
     s = states_2d[is]   # e.g., s = (x, v)
     for a in 1:nactions
         for i in 1:nsamples
-	    xn=s[1]
-	    vn=s[2]
-	    j=1
-	    while true	
             (xn, vn, disturbance) = dynamics_rand(s[1], s[2], actions[a])
-            #disturbance_list[is,a,i]= disturbance
+            disturbance_list[is,a,i]= disturbance
             # For knn, pass a 2-element Vector, not a Tuple
-	    idxs, dists = knn(tree, [xn, vn], 1)
-	             if first(idxs) != is || j > 10 
-		                  T[is, a, first(idxs)] += 1.0 / nsamples
-		                  break
-	             end
-	    j+=1
-            end
+            idxs, dists = knn(tree, [xn, vn], 1)
+            T[is, a, first(idxs)] += 1.0 / nsamples
         end
     end
 end
@@ -184,7 +119,7 @@ for action in 1:num_points_action
 @assert all(i -> sum(T[i, action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
 end
 
-T .= ifelse.(abs.(T) .< treshold_for_transit, 0.0, T)
+T .= ifelse.(abs.(T) .< trashhold_for_transit, 0.0, T)
 
 println("The maximum disturbance value is ",maximum(disturbance_list))
 
@@ -207,12 +142,10 @@ end
 ##########################################################
 # 4) Solve the linear program (flow constraints)
 ##########################################################
-function solve_case()   
-    # Set Gurobi license credentials right before creating the model
-    ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
-    ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
-    ENV["GRB_LICENSEID"] = "2611020"
-
+function solve_case()
+    println("*************************************************")
+    println("Solving case with sigma = $sigma")
+    println("*************************************************")
 
     # Setup model
     model = Model(Gurobi.Optimizer)
@@ -292,7 +225,7 @@ function solve_case()
         end
     end
 
-    return objective_value(model), X, Y, Z_occup, G_map, H_map
+    return X, Y, Z_occup, G_map, H_map
 end
 
 ##########################################################
@@ -300,79 +233,62 @@ end
 #    Then save results to a new directory "results/"
 ##########################################################
 function main_3D()
-    # Solve the optimization problem
-    println("*************************************************")
-    println("Solving case with sigma = $sigma")
-    println("*************************************************")
-    
-    # Call solve_case() and capture all the returned values
-   
-    objective, X, Y, Z_occup, G_map, H_map = solve_case()
-    
-    # Extract any other values you need for results
-    
-    # Create a timestamped folder for results
-    timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    results_dir = joinpath(@__DIR__, "results", string(sigma))
-    mkpath(results_dir)
-    
-    println("Saving results to: $results_dir")
-    
-    # Save optimization results
-    open(joinpath(results_dir, "optimization_results.txt"), "w") do f
-        println(f, "Optimization run on: $timestamp")
-        println(f, "Sigma: $sigma")
-        println(f, "Average reward: $objective")
-        # Add other parameters you want to save
-    end
-    
-    # Save occupancy measures data
-    if !isnothing(Z_occup)
-        writedlm(joinpath(results_dir, "occup_measures_Z_occup.csv"), Z_occup, ',')
-    end
-    
-    # Save value function data if available
-    if !isnothing(G_map)
-        writedlm(joinpath(results_dir, "G_map.csv"), G_map, ',')
-    end
-    
-    if !isnothing(H_map)
-	    writedlm(joinpath(results_dir, "H_map.csv"), H_map, ',')
-    end
+    # Solve the LP
+    X, Y, Z_occup, G_map, H_map = solve_case()
 
-    # Construct grid data for plotting elsewhere if needed
-    #X, Y = construct_grid()  # You'll need to implement this function
-    writedlm(joinpath(results_dir, "X_grid.csv"), X, ',')
-    writedlm(joinpath(results_dir, "Y_grid.csv"), Y, ',')
-    
-    println("Results saved successfully to: $results_dir")
-end
-# Add this function to your code to fix the error:
+    # "Safe set" boundary lines (for reference)
+    safe_x = 0.3*[-1, 1, 1, -1, -1]
+    safe_v = 0.6*[-1, -1, 1, 1, -1]
+    safe_z = zeros(length(safe_x))
+ 
+    # Create a figure with 3 subplots (no colorbars)
+    fig = Figure(resolution=(1800, 600))
 
-##########################################################
-# Helper function to construct the grid for saving results
-##########################################################
-function construct_grid()
-    # Use the same grid parameters as in your original problem
-    nx = 51  # Use the same values as in your state space discretization
-    ny = 51
-    
-    # These ranges should match your state space
-    xmin, xmax = -2.0, 2.0
-    ymin, ymax = -2.0, 2.0
-    
-    # Create a grid
-    x = range(xmin, xmax, length=nx)
-    y = range(ymin, ymax, length=ny)
-    
-    # Create meshgrid-like structure
-    X = [i for i in x, j in 1:ny]
-    Y = [j for i in 1:nx, j in y]
-    
-    return X, Y
+    # (1) Occupation measure z(s)
+    ax1 = Axis3(fig[1,1],
+        title  = "sum(value(z[s,a]) for a in 1:nactions",
+        xlabel = "theta (θ)",
+        ylabel = " theta_dot(θ̇)",
+        zlabel = "Value"
+    )
+    # Makie uses row-major for surface, so pass Z_occup' (transpose)
+    surface!(ax1, X, Y, Z_occup', colormap=:plasma)
+    lines!(ax1, safe_x, safe_v, safe_z, color=:red, linewidth=3)
+
+    # (2) Dual w.r.t. flow constraint: G_map
+    ax2 = Axis3(fig[1,2],
+        title  = "Dual Constraint 2",
+        xlabel = "theta (θ)",
+        ylabel = " theta_dot(θ̇)",
+        zlabel = "Value"
+    )
+    surface!(ax2, X, Y, G_map', colormap=:viridis)
+    lines!(ax2, safe_x, safe_v, safe_z, color=:red, linewidth=3)
+
+    # (3) Dual w.r.t. alpha-dist constraint: H_map
+    ax3 = Axis3(fig[1,3],
+        title  = "Dual Constraint 3",
+        xlabel = "theta (θ)",
+        ylabel = " theta_dot(θ̇)",
+        zlabel = "Value"
+    )
+    surface!(ax3, X, Y, H_map', colormap=:hot)
+    lines!(ax3, safe_x, safe_v, safe_z, color=:red, linewidth=3)
+
+    display(fig)
+    println("\nAll subplots shown in one row (no colorbars).")
+
+    # -------------------------------------------------------
+    # Create a "results" directory, save the figure there.
+    # -------------------------------------------------------
+    mkpath("results")  # Create the directory if it doesn't exist
+    GLMakie.save("results/plot.png", fig)  # Save as a .png image
+    println("Figure saved to results/plot.png")
+
+    return fig
 end
+
 ##########################################################
 # 6) Run
 ##########################################################
 main_3D()
-

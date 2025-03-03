@@ -1,5 +1,6 @@
 ##########################################################
-# Average Reward and Linear Programming for Double-Integrator Systems
+# Average Reward and Linear Programming for Double-Integrator Systems 
+# A Minimum Discounted Reward Hamilton–Jacobi Formulation for Computing Reachable Sets
 ##########################################################
 using Dates
 using DelimitedFiles  # For saving data to CSV files
@@ -15,7 +16,6 @@ using Base: mkpath
 ##########################################################
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
-
 # Set Gurobi WLS license credentials - add these at the to
 # # At the very beginning of your file, before any other code executes:
 println("Setting Gurobi license credentials...")
@@ -23,66 +23,37 @@ ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
 ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
 ENV["GRB_LICENSEID"] = "2611020"
 println("License credentials set")
-
 # Optional: set a random seed if desired
-<<<<<<< HEAD
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 1
+const sigma = 0.0
 
 const treshold_for_transit=0.001
 
-const theta_min=-0.35
-const theta_max=0.35
-const theta_dot_min= -0.65
-const theta_dot_max=  0.65
+const x_1_min=-1.0
+const x_1_max=5.0
+const x_2_min= -5.0
+const x_2_max=  5.0
 
-const u_min= -3.0
-const u_max=  3.0
-
-
-const num_points_action = 10
-const num_points_state = 101
-
-# Number of random samples used when constructing transitions
-const nsamples = 1000
-
-# Number of states in each dimension
-theta = collect(LinRange(theta_min, theta_max, num_points_state))  # Possible theta values
-theta_dot = collect(LinRange(theta_dot_min, theta_dot_max, num_points_state))  # Possible theta_dot values
-=======
-# Random.seed!(1234)
-
-# Single noise standard deviation
-const sigma = 0.05
-
-## double integrator 
-const x_min=-2
-const x_max=2
-const v_min=-2
-const v_max=2
-
-const u_min=-1
-const u_max=1
-
+const u_min= -2.0
+const u_max=  2.0
 
 
 const num_points_action = 10
-const num_points_state = 100
+const num_points_state = 161
 
 # Number of random samples used when constructing transitions
-const nsamples = 50
+const nsamples = 100
 
 # Number of states in each dimension
-
-positions  = collect(LinRange(x_min, x_max, num_points_state))   # possible x-values
-velocities = collect(LinRange(v_min, v_max, num_points_state))   # possible v-values
->>>>>>> bdd96c8 (feb 24th and lic file is added in the project foldere)
+x1 = collect(LinRange(x_1_min, x_2_max, num_points_state))  # Possible theta values
+x2 = collect(LinRange(x_2_min, x_2_max, num_points_state))  # Possible theta_dot values
 
 # Cartesian product of (x, v) forms the entire state space
-const states_2d  = [(x, v) for x in theta for v in theta_dot]
+const states_2d  = [(x, v) for x in x1 for v in x2]
 const nstates    = length(states_2d)
+
 
 # Action discretization
 
@@ -97,52 +68,27 @@ println("Number of actions = $nactions")
 ##########################################################
 # T is a 3D array of size (nstates × nactions × nstates),
 # T[s, a, s_next] = Probability of going to s_next from s under action a.
+# The task is to keep the state trajectory inside the box K = [0, 4] × [−3, 3],
+# thus the target is taken to be its complement T = KC . For ease of 
+# exposition we define the safe set Ω(T ) := R(T )C .
 
 function is_safe(x::Float64, v::Float64)
     # Example "safe" region: x in [-1,1], v in [-1,1]
-<<<<<<< HEAD
-    return (-0.30<= x <= 0.30) && (-0.60<= v <= 0.60)
+    return (0.0<= x <= 4.0) && (-3.0<= v <= 3.0)
 end
 
 # Continuous (noisy) dynamics:
 ## inverted pendulumn 
-function dynamics_rand(theta::Float64, theta_dot::Float64, u::Float64)
-    # d= 0.6*sin(randn())
-    
-    d = rand(Normal(0, sigma))
-    
-
-    if !is_safe(theta, theta_dot)
-        return (theta, theta_dot, d)   # no movement if outside the safe region
-    else
-        g=10
-        m=2
-        l=1
-        dt=0.01
-        theta_next = theta + theta_dot*dt
-        theta_dot_next = theta_dot + ((g/l*sin(theta) + (1/m*l^2)*u) + d)*dt
-        return (theta_next, theta_dot_next, d)
-=======
-    return (-1<= x <= 1) && (-1<= v <= 1)
-end
-
-# Continuous (noisy) dynamics:
-#   - If (x,v) is outside the safe region, remain there.
-#   - Otherwise x_{t+1} = x + v, v_{t+1} = (v + u) + noise
-
-# double integrator dynamic
-function dynamics_rand(x::Float64, v::Float64, u::Float64)
+function dynamics_rand(x::Float64, v::Float64, u::Float64)    
     if !is_safe(x, v)
         return (x, v)   # no movement if outside the safe region
     else
-        d  = rand(Normal(0, sigma))
-        xnext = x + v
-        vnext = v + u + d  
-        return (xnext, vnext)
->>>>>>> bdd96c8 (feb 24th and lic file is added in the project foldere)
+        dt=0.001
+        x1_next = x + v*dt
+        x2_next = v + u*dt
+        return (x1_next, x2_next)
     end
 end
-
 
 # Build a KD-tree for snapping continuous next-states to the nearest discrete state.
 states_matrix = hcat([collect(s) for s in states_2d]...)  # shape: 2 x nstates
@@ -163,8 +109,7 @@ for is in 1:nstates
 	    vn=s[2]
 	    j=1
 	    while true	
-            (xn, vn, disturbance) = dynamics_rand(s[1], s[2], actions[a])
-            #disturbance_list[is,a,i]= disturbance
+            (xn, vn) = dynamics_rand(s[1], s[2], actions[a])
             # For knn, pass a 2-element Vector, not a Tuple
 	    idxs, dists = knn(tree, [xn, vn], 1)
 	             if first(idxs) != is || j > 10 
@@ -375,4 +320,3 @@ end
 # 6) Run
 ##########################################################
 main_3D()
-
