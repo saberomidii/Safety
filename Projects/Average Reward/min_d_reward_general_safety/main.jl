@@ -19,10 +19,10 @@ using Base: mkpath
 # Set Gurobi WLS license credentials - add these at the to
 # # At the very beginning of your file, before any other code executes:
 #println("Setting Gurobi license credentials...")
-#ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
-#ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
-#ENV["GRB_LICENSEID"] = "2611020"
-#println("License credentials set")
+ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
+ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
+ENV["GRB_LICENSEID"] = "2611020"
+println("License credentials set")
 # Optional: set a random seed if desired
 # Random.seed!(2)
 
@@ -42,9 +42,9 @@ const u_max=  2.0
 
 const num_points_action = 11
 
-const num_points_state = 101
+const num_points_state = 161
 
-const num_points_state =101
+const num_points_state =161
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -157,9 +157,9 @@ end
 ##########################################################
 function solve_case()   
     # Set Gurobi license credentials right before creating the model
-    ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
-    ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
-    ENV["GRB_LICENSEID"] = "2611020"
+   # ENV["GRB_WLSACCESSID"] = "52eb20bf-115c-42d3-931f-47561460611c"
+   # ENV["GRB_WLSSECRET"] = "587b8f93-6d53-43c9-af49-6b96ac589004"
+   # ENV["GRB_LICENSEID"] = "2611020"
 
     # Setup model
     model = Model(Gurobi.Optimizer)
