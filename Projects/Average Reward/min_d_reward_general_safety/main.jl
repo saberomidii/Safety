@@ -27,7 +27,7 @@ println("License credentials set")
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 2.0
+const sigma = 0.25
 
 const treshold_for_transit=0.001
  
@@ -87,8 +87,9 @@ function dynamics_rand(x::Float64, v::Float64, u::Float64)
         return (x, v)   # no movement if outside the safe region
     else
         dt=0.1
+	d=rand(Normal(0,sigma))
         x1_next = x + v*dt
-        x2_next = v + u*dt
+        x2_next = v + (u+d)*dt
         return (x1_next, x2_next)
     end
 end
