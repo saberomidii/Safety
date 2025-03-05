@@ -27,7 +27,7 @@ println("License credentials set")
 # Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 1
+const sigma = 1.0
 
 const treshold_for_transit=0.001
 
@@ -40,11 +40,11 @@ const u_min= -2.0
 const u_max=  2.0
 
 
-const num_points_action = 5
+const num_points_action = 11
 
-const num_points_state = 51
+const num_points_state = 161
 
-const num_points_state = 51
+const num_points_state = 161
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
