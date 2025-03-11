@@ -25,10 +25,10 @@ ENV["GRB_LICENSEID"] = "2611020"
 println("License credentials set")
 
 # Optional: set a random seed if desired
-Random.seed!(2)
+#Random.seed!(2)
 
 # Single noise standard deviation
-const sigma = 1.0
+const sigma = 0.5
 
 const threshold_for_transit = 0.001
 
