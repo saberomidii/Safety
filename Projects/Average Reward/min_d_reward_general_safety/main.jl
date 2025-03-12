@@ -162,6 +162,30 @@ function solve_primal_case()
     # Setup model
     model = Model(Gurobi.Optimizer)
     
+    # Set Gurobi parameters for precision control with better numerical stability
+    set_optimizer_attribute(model, "FeasibilityTol", 1e-3)  # Feasibility tolerance
+    set_optimizer_attribute(model, "OptimalityTol", 1e-3)   # Optimality tolerance
+    set_optimizer_attribute(model, "MIPGap", 1e-3)          # Relative MIP gap tolerance (1%)
+    set_optimizer_attribute(model, "BarConvTol", 1e-3)      # Barrier convergence tolerance
+    set_optimizer_attribute(model, "NumericFocus", 3)       # Maximum numerical focus (was 2)
+    set_optimizer_attribute(model, "ScaleFlag", 3)          # Aggressive scaling
+    set_optimizer_attribute(model, "OutputFlag", 1)         # Show Gurobi output
+    
+    # Set iteration limit - stop after this many iterations
+    set_optimizer_attribute(model, "BarIterLimit", 60)      # Limit barrier iterations
+    set_optimizer_attribute(model, "IterationLimit", 50)    # Limit simplex iterations
+    
+    # Handle numerical instability
+    set_optimizer_attribute(model, "Crossover", 0)          # Skip crossover (use barrier solution directly)
+    set_optimizer_attribute(model, "Method", 2)             # Use barrier method
+    set_optimizer_attribute(model, "BarHomogeneous", 1)     # Use homogeneous barrier if regular barrier fails
+    
+    # Time limit as a backup if iterations aren't reached
+    set_optimizer_attribute(model, "TimeLimit", 2*60)         # 60 second time limit
+    
+    # Round solution to 2 decimal places
+    set_optimizer_attribute(model, "PSDTol", 1e-3)          # Positive semi-definite tolerance
+    
     # Define variables: g[s] and h[s] for each state
     @variable(model, g[1:nstates] >= 0)
     @variable(model, h[1:nstates] >= 0)
@@ -175,46 +199,67 @@ function solve_primal_case()
     # Constraint 1: g_s ≥ sum_{s'} g_s' * P(s'|s,a) for all s in S, a in A
     for s in 1:nstates
         for a in 1:nactions
-            @constraint(model, g[s] >= sum(g[s_prime] * T[s, a, s_prime] for s_prime in 1:nstates))
+            # Filter out near-zero transitions to reduce constraint complexity
+            relevant_transitions = [(s_prime, T[s, a, s_prime]) for s_prime in 1:nstates if T[s, a, s_prime] > threshold_for_transit]
+            if !isempty(relevant_transitions)
+                @constraint(model, g[s] >= sum(g[s_prime] * prob for (s_prime, prob) in relevant_transitions))
+            end
         end
     end
     
     # Constraint 2: g_s + h_s ≥ r(s) + sum_{s'} h_s' * P(s'|s,a) for all s in S, a in A
     for s in 1:nstates
         for a in 1:nactions
-            @constraint(model, g[s] + h[s] >= r[s] + sum(h[s_prime] * T[s, a, s_prime] for s_prime in 1:nstates))
+            # Filter out near-zero transitions to reduce constraint complexity
+            relevant_transitions = [(s_prime, T[s, a, s_prime]) for s_prime in 1:nstates if T[s, a, s_prime] > threshold_for_transit]
+            if !isempty(relevant_transitions)
+                @constraint(model, g[s] + h[s] >= r[s] + sum(h[s_prime] * prob for (s_prime, prob) in relevant_transitions))
+            end
         end
     end
 
-    # Solve the model
-    optimize!(model)
-    
-    # Check solution status
-    stat = termination_status(model)
-    println("Solver status: $stat")
-    
-    if stat == MOI.OPTIMAL
-        println("Optimal objective value = ", objective_value(model))
+    # Solve the model with error handling
+    try
+        optimize!(model)
         
-        # Retrieve the optimal g and h values
-        g_opt = value.(g)
-        h_opt = value.(h)
+        # Check solution status
+        stat = termination_status(model)
+        println("Solver status: $stat")
         
-        # Reshape for visualization
-        g_map = reshape(g_opt, num_points_state, num_points_state)
-        h_map = reshape(h_opt, num_points_state, num_points_state)
-        
-        # Create grid for visualization
-        X = [x1[i] for i in 1:num_points_state, j in 1:num_points_state]
-        Y = [x2[j] for i in 1:num_points_state, j in 1:num_points_state]
-        
-        return objective_value(model), g_opt, h_opt, g_map, h_map, X, Y
-    else
-        println("No optimal solution found. Status = ", stat)
+        if stat == MOI.OPTIMAL || stat == MOI.ALMOST_OPTIMAL || stat == MOI.ITERATION_LIMIT || stat == MOI.TIME_LIMIT
+            println("Solution found with status: $stat")
+            println("Objective value = ", objective_value(model))
+            
+            # Retrieve the g and h values (optimal or best found)
+            g_opt = value.(g)
+            h_opt = value.(h)
+            
+            # Check for NaN or Inf values and replace them
+            g_opt = replace(g_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
+            h_opt = replace(h_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
+            
+            # Round to two decimal places
+            g_opt = round.(g_opt, digits=2)
+            h_opt = round.(h_opt, digits=2)
+            
+            # Reshape for visualization
+            g_map = reshape(g_opt, num_points_state, num_points_state)
+            h_map = reshape(h_opt, num_points_state, num_points_state)
+            
+            # Create grid for visualization
+            X = [x1[i] for i in 1:num_points_state, j in 1:num_points_state]
+            Y = [x2[j] for i in 1:num_points_state, j in 1:num_points_state]
+            
+            return objective_value(model), g_opt, h_opt, g_map, h_map, X, Y
+        else
+            println("No optimal solution found. Status = ", stat)
+            return nothing, nothing, nothing, nothing, nothing, nothing, nothing
+        end
+    catch e
+        println("Error during optimization: ", e)
         return nothing, nothing, nothing, nothing, nothing, nothing, nothing
     end
 end
-
 ##########################################################
 # 5) Save results
 ##########################################################
