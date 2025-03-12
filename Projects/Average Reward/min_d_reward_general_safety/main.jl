@@ -90,7 +90,7 @@ function dynamics_rand(x::Float64, v::Float64, u::Float64)
         while d < d_min || d > d_max
             d = rand(Normal(0, sigma))
         end
-        dt=0.1
+        dt=0.2
         x1_next = x + v*dt
         x2_next = v + (u+d)*dt
         return (x1_next, x2_next)
