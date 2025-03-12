@@ -163,17 +163,17 @@ function solve_primal_case()
     model = Model(Gurobi.Optimizer)
     
     # Set Gurobi parameters for precision control with better numerical stability
-    set_optimizer_attribute(model, "FeasibilityTol", 1e-3)  # Feasibility tolerance
-    set_optimizer_attribute(model, "OptimalityTol", 1e-3)   # Optimality tolerance
-    set_optimizer_attribute(model, "MIPGap", 1e-3)          # Relative MIP gap tolerance (1%)
-    set_optimizer_attribute(model, "BarConvTol", 1e-3)      # Barrier convergence tolerance
+    set_optimizer_attribute(model, "FeasibilityTol", 1e-4)  # Feasibility tolerance
+    set_optimizer_attribute(model, "OptimalityTol", 1e-4)   # Optimality tolerance
+    set_optimizer_attribute(model, "MIPGap", 1e-4)          # Relative MIP gap tolerance (1%)
+    set_optimizer_attribute(model, "BarConvTol", 1e-4)      # Barrier convergence tolerance
     set_optimizer_attribute(model, "NumericFocus", 3)       # Maximum numerical focus (was 2)
     set_optimizer_attribute(model, "ScaleFlag", 3)          # Aggressive scaling
     set_optimizer_attribute(model, "OutputFlag", 1)         # Show Gurobi output
     
     # Set iteration limit - stop after this many iterations
-    set_optimizer_attribute(model, "BarIterLimit", 60)      # Limit barrier iterations
-    set_optimizer_attribute(model, "IterationLimit", 50)    # Limit simplex iterations
+    set_optimizer_attribute(model, "BarIterLimit", 100)      # Limit barrier iterations
+    set_optimizer_attribute(model, "IterationLimit", 100)    # Limit simplex iterations
     
     # Handle numerical instability
     set_optimizer_attribute(model, "Crossover", 0)          # Skip crossover (use barrier solution directly)
@@ -181,10 +181,10 @@ function solve_primal_case()
     set_optimizer_attribute(model, "BarHomogeneous", 1)     # Use homogeneous barrier if regular barrier fails
     
     # Time limit as a backup if iterations aren't reached
-    set_optimizer_attribute(model, "TimeLimit", 2*60)         # 60 second time limit
+    set_optimizer_attribute(model, "TimeLimit", 120)         # 60 second time limit
     
     # Round solution to 2 decimal places
-    set_optimizer_attribute(model, "PSDTol", 1e-3)          # Positive semi-definite tolerance
+    set_optimizer_attribute(model, "PSDTol", 1e-4)          # Positive semi-definite tolerance
     
     # Define variables: g[s] and h[s] for each state
     @variable(model, g[1:nstates] >= 0)
