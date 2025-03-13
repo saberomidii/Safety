@@ -28,7 +28,7 @@ println("License credentials set")
 # Random.seed!(50)
 
 # Single noise standard deviation
-const sigma = 2.0
+const sigma = 5.0
 
 const threshold_for_transit = 0.001
 
