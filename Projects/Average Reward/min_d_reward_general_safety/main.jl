@@ -40,8 +40,8 @@ const x_2_max = 5.0
 const u_min = -2.0
 const u_max = 2.0
 
-const d_min=-2.0
-const d_max= 2.0 
+const d_min=-100.0
+const d_max= 100.0 
 
 
 const num_points_action = 11
@@ -92,7 +92,7 @@ function dynamics_rand(x::Float64, v::Float64, u::Float64)
         end
         dt=0.1
         x1_next = x + v*dt
-        x2_next = v*x + (u+d)*dt
+        x2_next = v + (u+d)*dt
         return (x1_next, x2_next)
     end
 end
