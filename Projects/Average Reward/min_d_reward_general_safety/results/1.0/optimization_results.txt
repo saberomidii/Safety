@@ -1,3 +1,0 @@
-Optimization run on: 2025-03-03_19-49-20
-Sigma: 1.0
-Average reward: 0.31075190000384717
