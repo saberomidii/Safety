@@ -27,12 +27,7 @@ println("License credentials set")
 Random.seed!(50)
 
 # Single noise standard deviation
-<<<<<<< HEAD
-const sigma = 2.0
-=======
-const sigma = 0.35
->>>>>>> 223909fd30b74269165535b434ed30d5f0e43367
-
+const sigma = 0.25
 const treshold_for_transit=0.001
  
 const x_1_min=- 1.0
@@ -43,16 +38,8 @@ const x_2_max=  5.0
 const u_min= -2.0
 const u_max=  2.0
 
-
-<<<<<<< HEAD
-const num_points_action = 5
-=======
 const num_points_action = 11
->>>>>>> 223909fd30b74269165535b434ed30d5f0e43367
-
-const num_points_state = 55
-
-const num_points_state = 55
+const num_points_state = 161
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -151,9 +138,6 @@ T .= ifelse.(abs.(T) .< treshold_for_transit, 0.0, T)
 println("The maximum disturbance value is ",maximum(disturbance_list))
 
 println("The minumum disturbance value is ",minimum(disturbance_list))
-
-
-
 
 println("Done building T.\n")
 
