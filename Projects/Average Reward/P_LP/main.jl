@@ -40,8 +40,8 @@ const x_2_max = 5.0
 const u_min = -2.0
 const u_max = 2.0
 
-const d_min=-100.0
-const d_max= 100.0 
+const d_min=-Inf
+const d_max= Inf 
 
 
 const num_points_action = 11
