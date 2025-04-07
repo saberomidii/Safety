@@ -2,6 +2,7 @@
 # Average Reward and Linear Programming for Double-Integrator Systems 
 # Primal Formulation for Computing Reachable Sets
 ##########################################################
+using LinearAlgebra
 using Dates
 using DelimitedFiles  # For saving data to CSV files
 using Distributions
@@ -45,10 +46,10 @@ const d_max= Inf
 
 
 const num_points_action = 11
-const num_points_state = 51
+const num_points_state = 161
 
 # Number of random samples used when constructing transitions
-const nsamples = 100
+const nsamples = 10
 
 # Number of states in each dimension
 x1 = collect(LinRange(x_1_min, x_1_max, num_points_state))  # Possible x values
