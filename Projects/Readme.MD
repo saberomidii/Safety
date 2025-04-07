@@ -10,8 +10,9 @@ Hamilton-Jacobi-Bellman (HJB): A special case of HJI without disturbance (i.e., 
 Hamilton-Jacobi-Isaacs (HJI): A more general formulation that solves the variational inequality for the HJI partial differential equation, accounting for disturbances or adversarial inputs (second player).
 
 # Average Reward (AR) MDP
-This directory contains two subdirectories: LP_primal and LP_dual.
-AR MDP problem is formulated as a linear programming (LP) problem. Using JuMP and Gurobi, both the primal and dual formulations of the optimization problem are implemented and solved.
+This directory contains three subdirectories: LP_primal, LP_dual, and LP_primal_interpolation.
+The AR MDP problem is formulated as a linear programming (LP) problem. Using JuMP and Gurobi, both the primal and dual formulations of the optimization problem are implemented and solved. 
+The LP_primal_interpolation folder contains a modified version of the primal LP formulation that uses interpolation-based sampling instead of the original approach.
 
 # General Notes
 The system under consideration is a simple double integrator with disturbance affecting the second state. The disturbance is modeled as a normally distributed random variable.
