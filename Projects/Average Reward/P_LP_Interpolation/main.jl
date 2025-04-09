@@ -29,7 +29,7 @@ println("License credentials set")
 # Random.seed!(50)
 
 # Single noise standard deviation
-const sigma = 1.0
+const sigma =0.0
 
 const threshold_for_transit = 0.001
 
@@ -46,10 +46,10 @@ const d_max= Inf
 
 
 const num_points_action = 11
-const num_points_state = 161
+const num_points_state = 51
 
 # Number of random samples used when constructing transitions
-const nsamples = 10
+const nsamples = 1000
 
 # Number of states in each dimension
 x1 = collect(LinRange(x_1_min, x_1_max, num_points_state))  # Possible x values
