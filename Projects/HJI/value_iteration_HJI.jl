@@ -10,11 +10,10 @@ for computing reachable sets, applied to a double integrator example with distur
 Based on the paper by Akametalu et al. (2024)
 """
 
-
 # Problem parameters
 const dt = 0.1               # Time step
 const umax = 2.0             # Maximum control input
-const discount_rate = 0.1    # Discount factor λ
+const discount_rate = 0.4   # Discount factor λ
 const gamma = exp(-discount_rate * dt)  # Discrete discount factor
 
 # const gamma = 0.99
