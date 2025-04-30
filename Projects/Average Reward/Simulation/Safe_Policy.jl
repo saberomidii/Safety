@@ -4,14 +4,14 @@ using CSV, DataFrames
 using NearestNeighbors
 using DelimitedFiles
 
+cd(@__DIR__)                # guarantees pwd() == folder that holds this file
 
+o_p = CSV.read("optimal_policy_SD_1.csv",DataFrame, header=false)
 
-o_p = CSV.read("/Users/saber/Desktop/safety_local/Projects/Average Reward/simulation/optimal_policy.csv",DataFrame, header=false)
-
-# Random.seed!(2)
+Random.seed!(2)
 optimal_policy = Matrix(o_p)
 
-Time_step:: Int64  =75
+Time_step:: Int64  =500
 element_type = Float64
 ncols  = 1
 
@@ -100,8 +100,12 @@ plot3 = plot(v, color=:purple, linewidth=2, xlabel="Time", ylabel="Velocity",
 
 # Combine into one figure
 
+# assume p is 1×N
+p = vec(p')                      # 1×N  ➜  N-element Vector
+v = vec(v')                      # do the same for velocity
 
-writedlm("position.csv",p)
-writedlm("velocity.csv",v)
+mkpath("Safe Policy")
+CSV.write("Safe Policy/position.csv", DataFrame(position = p))
+CSV.write("Safe Policy/velocity.csv", DataFrame(velocity = v))
 
 plot(plot1, plot2, plot3, layout=(3,1), size=(800, 900))
