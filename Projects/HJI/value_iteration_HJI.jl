@@ -13,10 +13,10 @@ Based on the paper by Akametalu et al. (2024)
 # Problem parameters
 const dt = 0.1               # Time step
 const umax = 2.0             # Maximum control input
-const discount_rate = 0.4   # Discount factor λ
-const gamma = exp(-discount_rate * dt)  # Discrete discount factor
+# const discount_rate = 0.4   # Discount factor λ
+# const gamma = exp(-discount_rate * dt)  # Discrete discount factor
 
-# const gamma = 0.99
+const gamma = 0.99
 
 # Disturbance parameters
 const disturbance_mean = 0.0  # Zero mean 
