@@ -9,8 +9,8 @@ set(0, 'DefaultColorbarTickLabelInterpreter', 'latex');
 % --- Grid Setup ---
 x_1_min = -0.5;  x_1_max =  0.5;
 x_2_min = -1.0;  x_2_max =  1.0;
-num_points_state_1 = 61;
-num_points_state_2 = 61;
+num_points_state_1 = 62;
+num_points_state_2 = 62;
 num_points_state_3 = 16;
 
 % --- Ellipse Parameters (updated) ---
