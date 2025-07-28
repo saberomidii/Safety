@@ -29,7 +29,7 @@ gr()  # or plotlyjs(), pyplot(), etc.
 # Random.seed!(50)
 
 # Single noise standard deviation
-const sigma = 2
+const sigma = 1.0
 const threshold_for_transit = 0.001
 
 const x_1_min = -0.5
@@ -49,9 +49,9 @@ const d_max= Inf
 
 const num_points_action = 10
 
-const num_points_state_1=30
-const num_points_state_2=30
-const num_points_state_3=30
+const num_points_state_1=66
+const num_points_state_2=66
+const num_points_state_3=12
 
 
 # Number of random samples used when constructing transitions
