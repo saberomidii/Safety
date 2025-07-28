@@ -38,8 +38,8 @@ const x_1_max = 0.5
 const x_2_min = -1.0
 const x_2_max = 1.0
 
-const x_3_min = -pi
-const x_3_max =  pi
+const x_3_min = pi/3
+const x_3_max = 2*pi/3
 
 const u_min = -0.5
 const u_max =  0.5
@@ -49,9 +49,9 @@ const d_max= Inf
 
 const num_points_action = 10
 
-const num_points_state_1=62
-const num_points_state_2=62
-const num_points_state_3=16
+const num_points_state_1=66
+const num_points_state_2=66
+const num_points_state_3=12
 
 
 # Number of random samples used when constructing transitions
