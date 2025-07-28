@@ -29,7 +29,7 @@ gr()  # or plotlyjs(), pyplot(), etc.
 # Random.seed!(50)
 
 # Single noise standard deviation
-const sigma = 1.0
+const sigma = 2.0
 const threshold_for_transit = 0.001
 
 const x_1_min = -0.5
