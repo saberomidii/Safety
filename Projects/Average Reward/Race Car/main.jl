@@ -51,7 +51,7 @@ const num_points_action =11
 
 const num_points_state_1=76
 const num_points_state_2=76
-const num_points_state_3=20
+const num_points_state_3=25
 
 
 
