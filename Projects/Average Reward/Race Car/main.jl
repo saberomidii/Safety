@@ -47,16 +47,16 @@ const u_max =  0.5
 const d_min=-Inf
 const d_max= Inf
 
-const num_points_action = 10
+const num_points_action =2
 
-const num_points_state_1=51
-const num_points_state_2=51
-const num_points_state_3=20
+const num_points_state_1=2
+const num_points_state_2=2
+const num_points_state_3=2
 
 
 
 # Number of random samples used when constructing transitions
-const nsamples = 100
+const nsamples = 2
 
 # Number of states in each dimension
 x1 = collect(LinRange(x_1_min, x_1_max, num_points_state_1))  # Possible x values
@@ -143,8 +143,8 @@ T = zeros(Float64, nstates, nactions, nstates)
 
 # (Compute Transition Matrix)
 @time begin
-for is in 1:nstates
-    s = states_3d[is]   # e.g., s = (x, v)
+ for is in 1:nstates
+    s = states_3d[is]   # e.g., s = (x, y, theta)
     for a in 1:nactions
         d = rand(Normal(0, sigma))
         for i in 1:nsamples
@@ -164,8 +164,19 @@ for is in 1:nstates
             end
         end
     end
+    # check to see entire row is zero or not! 
+    println(T[:,:,:])
+ end
 end
-end
+
+num_zeros = count(x -> x==0,T)
+
+println("Number of Zeros in T:", num_zeros)
+
+
+
+
+
 
 # # Initialize T array: T[s, a, s_next]
 # T = zeros(Float64, nstates, nactions, nstates)
@@ -214,6 +225,7 @@ end
 for action in 1:num_points_action
     @assert all(i -> sum(T[i, action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
 end
+
 
 # Remove very small transition probabilities
 T .= ifelse.(abs.(T) .< threshold_for_transit, 0.0, T)
