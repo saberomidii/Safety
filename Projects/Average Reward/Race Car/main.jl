@@ -47,16 +47,16 @@ const u_max =  0.5
 const d_min=-Inf
 const d_max= Inf
 
-const num_points_action =2
+const num_points_action =10
 
-const num_points_state_1=2
-const num_points_state_2=2
-const num_points_state_3=2
+const num_points_state_1=75
+const num_points_state_2=75
+const num_points_state_3=12
 
 
 
 # Number of random samples used when constructing transitions
-const nsamples = 2
+const nsamples = 100
 
 # Number of states in each dimension
 x1 = collect(LinRange(x_1_min, x_1_max, num_points_state_1))  # Possible x values
@@ -165,7 +165,7 @@ T = zeros(Float64, nstates, nactions, nstates)
         end
     end
     # check to see entire row is zero or not! 
-    println(T[:,:,:])
+    #println(T[:,:,:])
  end
 end
 
