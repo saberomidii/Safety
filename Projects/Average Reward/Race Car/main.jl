@@ -47,11 +47,11 @@ const u_max =  0.5
 const d_min=-Inf
 const d_max= Inf
 
-const num_points_action =10
+const num_points_action =2
 
-const num_points_state_1=75
-const num_points_state_2=75
-const num_points_state_3=12
+const num_points_state_1=3
+const num_points_state_2=3
+const num_points_state_3=3
 
 
 
@@ -139,7 +139,18 @@ tree = KDTree(states_matrix)
 println("\nBuilding transition probabilities T[s, a, s_next] ...")
 
 # Initialize T array: T[s, a, s_next]
-T = zeros(Float64, nstates, nactions, nstates)
+#T = zeros(Float64, nstates, nactions, nstates)
+
+T = Vector{SparseMatrixCSC{Float64,Int64}}(undef,nstates)
+
+
+
+for index_state in 1:nstates
+	T[index_state] = spzeros(nactions,nstates)
+end
+
+println(T)
+
 
 # (Compute Transition Matrix)
 @time begin
