@@ -49,9 +49,9 @@ const d_max= Inf
 
 const num_points_action =11
 
-const num_points_state_1=75
-const num_points_state_2=75
-const num_points_state_3=16
+const num_points_state_1=76
+const num_points_state_2=76
+const num_points_state_3=20
 
 
 
