@@ -29,7 +29,7 @@ gr()  # or plotlyjs(), pyplot(), etc.
 # Random.seed!(50)
 
 # Single noise standard deviation
-const sigma = 2.0
+const sigma = 1.0
 const threshold_for_transit = 0.001
 
 const x_1_min = -0.5
@@ -47,11 +47,11 @@ const u_max =  0.5
 const d_min=-Inf
 const d_max= Inf
 
-const num_points_action =2
+const num_points_action =11
 
-const num_points_state_1=3
-const num_points_state_2=3
-const num_points_state_3=3
+const num_points_state_1=75
+const num_points_state_2=75
+const num_points_state_3=16
 
 
 
@@ -149,7 +149,7 @@ for index_state in 1:nstates
 	T[index_state] = spzeros(nactions,nstates)
 end
 
-println(T)
+#println("Sparse initilization matrix",T)
 
 
 # (Compute Transition Matrix)
@@ -168,8 +168,8 @@ println(T)
                 # For knn, pass a 2-element Vector, not a Tuple
                 idxs, dists = knn(tree, [xn, vn, thetan], 1)
                 if first(idxs) != is || j > 1
-                    T[is, a, first(idxs)] += 1.0 / nsamples
-                    break
+		   T[is][ a, first(idxs)] += 1.0 / nsamples
+                   break
                 end
                 j += 1
             end
@@ -230,17 +230,18 @@ println("Number of Zeros in T:", num_zeros)
 # end
 # end
 
-@assert sum(T[1,1,:]) ≈ 1.0  # Checks row sums to ~1
-@assert all(T .>= 0.0) "Matrix T contains negative values!"
+@assert sum(T[1][1,:]) ≈ 1.0  # Checks row sums to ~1
+@assert all(t->all(t .>= 0.0),T) "Matrix T contains negative values!"
 
 for action in 1:num_points_action
-    @assert all(i -> sum(T[i, action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
+	@assert all(i -> sum(T[i][action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
 end
 
 
 # Remove very small transition probabilities
-T .= ifelse.(abs.(T) .< threshold_for_transit, 0.0, T)
-
+for s in 1:nstates
+	T[s]=dropzeros!(map(x ->abs(x)<threshold_for_transit ? 0.0 : x,T[s]))
+end
 println("Done building T.\n")
 
 ##########################################################
@@ -289,7 +290,7 @@ function solve_primal_case()
         for a in 1:nactions
             idx = (s - 1) * nactions + a
             # Find all s_prime where T[s,a,s_prime] > threshold
-            nz_sprimes = findall(p -> p > threshold_for_transit, T[s,a,:])
+	    nz_sprimes = findall(p -> p > threshold_for_transit, T[s][a,:])
             nonzero_indices[idx] = nz_sprimes
         end
     end
@@ -313,7 +314,7 @@ function solve_primal_case()
             idx = (s - 1) * nactions + a
             s_primes = nonzero_indices[idx]
             if !isempty(s_primes)
-                @constraint(model, g[s] >= sum(g[s_prime] * T[s, a, s_prime] for s_prime in s_primes))
+		    @constraint(model, g[s] >= sum(g[s_prime] * T[s][ a, s_prime] for s_prime in s_primes))
             end
         end
     end
@@ -338,7 +339,7 @@ function solve_primal_case()
             idx = (s - 1) * nactions + a
             s_primes = nonzero_indices[idx]
             if !isempty(s_primes)
-                @constraint(model, g[s] + h[s] >= r[s] + sum(h[s_prime] * T[s, a, s_prime] for s_prime in s_primes))
+		    @constraint(model, g[s] + h[s] >= r[s] + sum(h[s_prime] * T[s][a, s_prime] for s_prime in s_primes))
             end
         end
     end
@@ -440,7 +441,7 @@ function main_primal()
         best_a = 1
         
         for a in 1:nactions
-            val = r[s] + sum(h_opt[s_prime] * T[s, a, s_prime] for s_prime in 1:nstates)
+		val = r[s] + sum(h_opt[s_prime] * T[s][a, s_prime] for s_prime in 1:nstates)
             if val > max_val
                 max_val = val
                 best_a = a
