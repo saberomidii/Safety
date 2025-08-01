@@ -38,15 +38,16 @@ const d_min=-Inf
 const d_max= Inf 
 
 
-const num_points_action = 20
-const num_points_state = 161
-
+const num_points_action = 21
+  
+const num_points_state_1 = 121
+const num_points_state_2 = 201
 # Number of random samples used when constructing transitions
 const nsamples = 100
 
 # Number of states in each dimension
-x1 = collect(LinRange(x_1_min, x_1_max, num_points_state))  # Possible x values
-x2 = collect(LinRange(x_2_min, x_2_max, num_points_state))  # Possible v values
+x1 = collect(LinRange(x_1_min, x_1_max, num_points_state_1))  # Possible x values
+x2 = collect(LinRange(x_2_min, x_2_max, num_points_state_2))  # Possible v values
 
 # Cartesian product of (x, v) forms the entire state space
 const states_2d = [(x, v) for x in x1 for v in x2]
@@ -164,7 +165,11 @@ end
 function solve_primal_case()   
     # Setup model
     model = Model(Mosek.Optimizer)
+   
     
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1.0e-4)
+
+
     # Define variables: g[s] and h[s] for each state
     @time begin 
 
@@ -192,7 +197,6 @@ function solve_primal_case()
 	    end 
     end
 
-    println("Error")
     # Constraint 1: g_s ≥ sum_{s'} g_s' * P(s'|s,a) for all s in S, a in A
     @time begin 
     		for s in 1:nstates
@@ -201,7 +205,7 @@ function solve_primal_case()
 			    s_primes= nonzero_indices[idx]
 
             			if !isempty(s_primes)
-					@constraint(model, g[s] >= sum(g[s_prime]*T[s][a, s_prime] for s_prime in sprimes))
+					@constraint(model, g[s] >= sum(g[s_prime]*T[s][a, s_prime] for s_prime in s_primes))
             			end
         		end
    		 end
