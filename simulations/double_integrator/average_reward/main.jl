@@ -16,6 +16,10 @@ using Base: mkpath
 
 using MosekTools
 using Mosek
+import MathOptInterface as MIO
+
+
+
 using SparseArrays
 using LinearAlgebra 
 ##########################################################
@@ -38,10 +42,10 @@ const d_min=-Inf
 const d_max= Inf 
 
 
-const num_points_action = 21
+const num_points_action = 11
   
-const num_points_state_1 = 121
-const num_points_state_2 = 201
+const num_points_state_1 = 61
+const num_points_state_2 = 101
 # Number of random samples used when constructing transitions
 const nsamples = 100
 
@@ -167,8 +171,7 @@ function solve_primal_case()
     model = Model(Mosek.Optimizer)
    
     
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1.0e-4)
-
+    set_optimizer_attribute(model, "MSK_DPAR_MIO_TOL_ABS_GAP",0.001)
 
     # Define variables: g[s] and h[s] for each state
     @time begin 
@@ -249,12 +252,12 @@ function solve_primal_case()
             h_opt = round.(h_opt, digits=2)
             
             # Reshape for visualization
-            g_map = reshape(g_opt, num_points_state, num_points_state)
-            h_map = reshape(h_opt, num_points_state, num_points_state)
+            g_map = reshape(g_opt, num_points_state_1, num_points_state_2)
+            h_map = reshape(h_opt, num_points_state_1, num_points_state_2)
             
             # Create grid for visualization
-            X = [x1[i] for i in 1:num_points_state, j in 1:num_points_state]
-            Y = [x2[j] for i in 1:num_points_state, j in 1:num_points_state]
+            X = [x1[i] for i in 1:num_points_state_1, j in 1:num_points_state_2]
+            Y = [x2[j] for i in 1:num_points_state_1, j in 1:num_points_state_2]
             
             return objective_value(model), g_opt, h_opt, g_map, h_map, X, Y
         else
