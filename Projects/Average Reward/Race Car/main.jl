@@ -143,8 +143,6 @@ println("\nBuilding transition probabilities T[s, a, s_next] ...")
 
 T = Vector{SparseMatrixCSC{Float64,Int64}}(undef,nstates)
 
-
-
 for index_state in 1:nstates
 	T[index_state] = spzeros(nactions,nstates)
 end
@@ -183,11 +181,6 @@ end
 num_zeros = count(x -> x==0,T)
 
 println("Number of Zeros in T:", num_zeros)
-
-
-
-
-
 
 # # Initialize T array: T[s, a, s_next]
 # T = zeros(Float64, nstates, nactions, nstates)
@@ -236,7 +229,6 @@ println("Number of Zeros in T:", num_zeros)
 for action in 1:num_points_action
 	@assert all(i -> sum(T[i][action, :]) ≈ 1.0, axes(T, 1)) "Not all row sums are approximately 1!"
 end
-
 
 # Remove very small transition probabilities
 for s in 1:nstates

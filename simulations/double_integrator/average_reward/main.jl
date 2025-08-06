@@ -25,6 +25,9 @@ using LinearAlgebra
 ##########################################################
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
+
+Random.seed!(123) # to reproduce the results. 
+
 # Single noise standard deviation
 const sigma = 1.0
 
@@ -171,7 +174,7 @@ function solve_primal_case()
     model = Model(Mosek.Optimizer)
    
     
-    set_optimizer_attribute(model, "MSK_DPAR_MIO_TOL_ABS_GAP",0.001)
+    set_optimizer_attribute(model,"MSK_IPAR_INTPNT_MAX_ITERATIONS",500)
 
     # Define variables: g[s] and h[s] for each state
     @time begin 
@@ -330,7 +333,7 @@ function main_primal()
     end
     
     # Save optimal policy
-    policy_map = reshape(optimal_policy, num_points_state, num_points_state)
+    policy_map = reshape(optimal_policy, num_points_state_1, num_points_state_2)
     writedlm(joinpath(results_dir, "optimal_policy.csv"), policy_map, ',')
     
     println("Results saved successfully to: $results_dir")
