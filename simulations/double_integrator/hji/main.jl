@@ -264,6 +264,27 @@ function save_analytical_safe_region_as_csv(Z, l, z_filename="Z_matrix_with_dist
     println("Coordinate versions saved to ", coords_z_filename, " and ", coords_l_filename)
 end
 
+
+function compute_zero_level_set_proportion(Z, x1_grid, x2_grid; filename="zero_level_set_proportion.txt")
+    total_points = length(x1_grid) * length(x2_grid)
+    safe_points = count(>=(0.0), Z)
+    proportion = safe_points / total_points
+    
+    println("Zero level set size: $safe_points out of $total_points grid points")
+    println("Proportion of safe region in the grid: ", round(proportion * 100; digits=2), "%")
+
+    # Save to file
+    open(filename, "w") do file
+        write(file, "Zero level set size: $safe_points\n")
+        write(file, "Total grid points: $total_points\n")
+        write(file, "Proportion: $proportion\n")
+    end
+
+    println("Proportion saved to file: $filename")
+end
+
+
+
 function main()
     # Print the current working directory
     println("Current working directory: ", pwd())
@@ -291,7 +312,11 @@ function main()
     else
         println("⚠ File was not created or was saved elsewhere")
     end
-    
+
+
+    # Compute and save the proportion of the safe region
+    compute_zero_level_set_proportion(Z, x1_grid, x2_grid)
+
     println("Done.")
 end
 
