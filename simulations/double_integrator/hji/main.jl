@@ -160,8 +160,21 @@ println("Number of actions=$nactions")
 
 
 # Value iteration dp
+max_iteration= 1000
 
+for state_index in state_2d
 
+	s= state_2d[state_index]
+        x= s[1]
+	v= s[2]
+
+	for action_index in actions 
+		for dis_index in D_list
+			state_next = di_dynamic(s[1],s[2],actions[action_index],D_list[dis_index])
+		end
+	end
+
+end 
 
 
 
