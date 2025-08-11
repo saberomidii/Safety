@@ -41,6 +41,9 @@ function s_d(x::Float64, y::Float64)
 	box_p_x=[0.0,4.0]  
 	box_p_y=[-3.0,3.0]
 
+	dx = 0.0 
+	dy = 0.0	
+
 	if (minimum(box_p_x) <= x <= maximum(box_p_x)) &&
 	   (minimum(box_p_y) <= y <= maximum(box_p_y))
 	  	
@@ -50,12 +53,13 @@ function s_d(x::Float64, y::Float64)
 	   dy=minimum([abs(y-box_p_y[1]),abs(y-box_p_y[2])])
 	
 	   m_dis= [dx,dy]
-	   return -m_dis
+	   return -norm(m_dis)
         
         elseif (x > maximum(box_p_x) || x < minimum(box_p_x)) && 
 	       (minimum(box_p_y) <= y <=  maximum(box_p_y))
 	  
  #              println("x is out of the box and y is inside the box")
+ 
 	   
 	       if x > maximum(box_p_x)
                  dx = abs(x-maximum(box_p_x))
@@ -67,7 +71,7 @@ function s_d(x::Float64, y::Float64)
 
 	       dy = minimum([abs(y-box_p_y[1]),abs(y-box_p_y[2])])
            
-	   return [dx,dy]
+	       return norm([dx,dy])
      
         elseif (y > maximum(box_p_y)|| y < minimum(box_p_y)) && 
 	       (minimum(box_p_x) <= x <= maximum(box_p_y)) 
@@ -84,7 +88,7 @@ function s_d(x::Float64, y::Float64)
 
 	    dx = minimum([abs(x-box_p_x[1]),abs(x-box_p_x[2])])
 
-           return [dx,dy]
+	    return norm([dx,dy])
 
        else 
    #       	  println("x and y are out the box")
@@ -104,7 +108,7 @@ function s_d(x::Float64, y::Float64)
 	              dy = abs(y-minimum(box_p_y))
 	           end
                   
-		   return [dx,dy] 
+		   return norm([dx,dy]) 
        end
 end
 
@@ -165,6 +169,9 @@ println("Number of actions=$nactions")
 # Value iteration dp
 max_iteration= 1000
 
+L=norm([5.0,5.0])
+
+
 for state_index in 1:nstates
 
 	s = state_2d[state_index]
@@ -172,15 +179,20 @@ for state_index in 1:nstates
 	x= s[1]
 	v= s[2]
 
+	l=-Inf
+
 	for action_index in actions 
 		for dis_index in D_list
 		next_states = di_dynamic(s[1],s[2],action_index,dis_index)
-		#println(next_states)
-		s_d(next_states[1],next_states[2])
+		signed_distance=s_d(next_states[1],next_states[2])
+		
+			if l > signed_distance 
+				l = min(max(signed_distance,-L),L)
+			end
+		println("Value of l:",l)
 		end
 	end
 
 end 
-
 
 
