@@ -1,0 +1,46 @@
+# Worst case for Double-Integrator system 
+# Saber Omidi 
+using Dates 
+using DelimitedFiles 
+using FileIO
+using Base:mkpath
+
+
+using Distributions 
+using StatsFuns
+using Statistics 
+using Random 
+using NearestNeighbors 
+using JuMP
+
+using SparseArrays 
+using LinearAlgebra 
+
+println("Packages are imported.")
+
+# Random Variable 
+
+sigma = 1.0
+mean = 0
+no_samples = 100
+
+
+D_list = spzeros(no_samples,1)
+for index in 1:no_samples
+	D_list[index]= rand(Normal(mean,sigma))
+end 
+
+println("Disturbance List is created.")
+
+
+# Signed Distance Function 
+
+function s_d(x::float64, y::float64)
+	dx= min(x-a,b-x)
+ 	dy= min(y-a,y-b)
+	m_dis= min(dx,dy)
+	return m_dis
+end
+
+
+
