@@ -43,8 +43,8 @@ function s_d(x::Float64, y::Float64)
 
 	if (minimum(box_p_x) <= x <= maximum(box_p_x)) &&
 	   (minimum(box_p_y) <= y <= maximum(box_p_y))
-	  	
-#	   println("x and y  are  inside the box") 	
+	   
+	   println("x and y  are  inside the box") 	
 	  
 	   dx=minimum([abs(x-box_p_x[1]),abs(x-box_p_x[2])])
 	   dy=minimum([abs(y-box_p_y[1]),abs(y-box_p_y[2])])
@@ -55,7 +55,7 @@ function s_d(x::Float64, y::Float64)
         elseif (x > maximum(box_p_x) || x < minimum(box_p_x)) && 
 	       (minimum(box_p_y) <= y <=  maximum(box_p_y))
 	  
- #              println("x is out of the box and y is inside the box")
+	       println("x is out of the box and y is inside the box")
 	   
 	       if x > maximum(box_p_x)
                  dx = abs(x-maximum(box_p_x))
@@ -72,7 +72,7 @@ function s_d(x::Float64, y::Float64)
         elseif (y > maximum(box_p_y)|| y < minimum(box_p_y)) && 
 	       (minimum(box_p_x) <= x <= maximum(box_p_y)) 
 
-  #             println("y is out of the box and x is inside the box")
+#	       println("y is out of the box and x is inside the box")
 	    
 	       if y > maximum(box_p_y)
 	      dy = abs(y-maximum(box_p_y))
@@ -87,7 +87,7 @@ function s_d(x::Float64, y::Float64)
            return [dx,dy]
 
        else 
-   #       	  println("x and y are out the box")
+ #  		  println("x and y are out the box")
        		   if x > maximum(box_p_x)
 	   	      dx = abs(x-maximum(box_p_x))
 		   end
