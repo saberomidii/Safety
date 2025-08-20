@@ -9,9 +9,9 @@ set(0, 'DefaultColorbarTickLabelInterpreter', 'latex');
 % --- Grid Setup ---
 x_1_min = -0.5;  x_1_max =  0.5;
 x_2_min = -1.0;  x_2_max =  1.0;
-num_points_state_1 = 62;
-num_points_state_2 = 62;
-num_points_state_3 = 16;
+num_points_state_1 = 76;
+num_points_state_2 = 76;
+num_points_state_3 = 25;
 
 % --- Ellipse Parameters (updated) ---
 a_outer = 0.4;  % Outer ellipse semi-major axis (x)
@@ -52,17 +52,17 @@ for i = 1:cmap_length
 end
 
 % Prepare theta values
-theta_list = linspace(-pi, pi, 16);
+theta_list = linspace(pi/3, 2*pi/3, num_points_state_3);
 
 figure;
 set(gcf, 'Position', [100, 100, 1200, 1000]);
 
-for index_theta = 1:16
+for index_theta = 1:num_points_state_3
     % Extract the current slice for this theta
     G_slice = G_Average_masked(:, :, index_theta);
     
     % Create subplot 4x4 grid
-    subplot(4,4,index_theta);
+    subplot(5,5,index_theta);
     hold on;
     
     % Plot contour
@@ -71,7 +71,7 @@ for index_theta = 1:16
     caxis([0 0.9]);
     
     % Colorbar only on last subplot for clarity
-    if index_theta == 16
+    if index_theta == num_points_state_3
         cb = colorbar;
         ylabel(cb, 'Safety', 'FontSize', 14, 'Interpreter', 'none');
     end

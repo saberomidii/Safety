@@ -5,7 +5,6 @@ using DelimitedFiles
 using FileIO
 using Base:mkpath
 
-
 using Distributions 
 using StatsFuns
 using Statistics 
@@ -19,7 +18,6 @@ using LinearAlgebra
 println("Packages are imported.")
 
 # Random Variable 
-
 sigma = 1.0
 mean = 0
 no_samples = 100
@@ -32,8 +30,7 @@ end
 
 println("Disturbance List is created.")
 
-
-# Signed Distance Function 
+# # Signed Distance Function 
 
 function s_d(x::Float64, y::Float64)
 
@@ -60,7 +57,6 @@ function s_d(x::Float64, y::Float64)
 	  
  #              println("x is out of the box and y is inside the box")
  
-	   
 	       if x > maximum(box_p_x)
                  dx = abs(x-maximum(box_p_x))
 	       end
@@ -74,10 +70,9 @@ function s_d(x::Float64, y::Float64)
 	       return norm([dx,dy])
      
         elseif (y > maximum(box_p_y)|| y < minimum(box_p_y)) && 
-	       (minimum(box_p_x) <= x <= maximum(box_p_y)) 
+	       (minimum(box_p_x) <= x <= maximum(box_p_x)) 
 
   #             println("y is out of the box and x is inside the box")
-	    
 	       if y > maximum(box_p_y)
 	      dy = abs(y-maximum(box_p_y))
 	    end
@@ -112,13 +107,6 @@ function s_d(x::Float64, y::Float64)
        end
 end
 
-#println("testing signed-distance function for four different cases",
-#	"[0.0,0.0]","[-5.0,2.0]","[1.0,-4.0]","[5.0,5.0]")
-#println("singed distance test:",s_d(0.0,0.0))
-#println("signed distance test",s_d(-5.0,2.0))
-#println("signed distance test",s_d(1.0,-4.0))
-#println("signed distance test:",s_d(5.0,5.0))
-
 
 # Double Integrator Dynamic 
 function di_dynamic(x1::Float64,x2::Float64, u::Float64, d::Float64)
@@ -131,13 +119,12 @@ function di_dynamic(x1::Float64,x2::Float64, u::Float64, d::Float64)
 end
 
 
-
 # Grids
-x1_min = -1.0
-x1_max =  5.0
+x1_min =   0.0
+x1_max =   4.0
 
-x2_min = -5.0
-x2_max =  5.0
+x2_min = -3.0
+x2_max =  3.0
 
 u_min  = -2.0
 u_max  =  2.0
@@ -147,8 +134,8 @@ d_max =  Inf
 
 num_points_actions = 11
 
-num_points_state_1 = 61
-num_points_state_2 = 101
+num_points_state_1 = 161
+num_points_state_2 = 161
 
 
 x1 = collect(LinRange(x1_min, x1_max, num_points_state_1))
@@ -166,33 +153,93 @@ println("Number of states =$nstates")
 println("Number of actions=$nactions")
 
 
+
+# Build a KD-tree for snapping continuous next-states to the nearest discrete state
+states_matrix = hcat([collect(s) for s in state_2d]...)  # shape: 2 x nstates
+tree = KDTree(states_matrix)
+
+
+
 # Value iteration dp
-max_iteration= 1000
+# const gamma = exp(-discount_rate * dt)  # Discrete discount factor
+dt=0.1
+discount_rate = 0.1
 
-L=norm([5.0,5.0])
+γ  =  exp(-discount_rate * dt)
+
+time_step = 20
 
 
+V= zeros(time_step, nstates)
+
+# terminal condition 
 for state_index in 1:nstates
+	x, v = state_2d[state_index][1], state_2d[state_index][2]
+	V[time_step,state_index] = -s_d(x, v)
+end
 
-	s = state_2d[state_index]
-        
-	x= s[1]
-	v= s[2]
 
-	l=-Inf
+for time_index in (time_step-1):-1:1
+	for state_index in 1:nstates
+		s = state_2d[state_index] 
+		x= s[1]
+		v= s[2]
 
-	for action_index in actions 
-		for dis_index in D_list
-		next_states = di_dynamic(s[1],s[2],action_index,dis_index)
-		signed_distance=s_d(next_states[1],next_states[2])
-		
-			if l > signed_distance 
-				l = min(max(signed_distance,-L),L)
+		# # If already outside, lock value to signed distance and skip
+        # if s_d(x, v) > 0
+        #     V[time_index, state_index] = -Inf 
+        #     continue
+        # end
+
+
+		best_over_action = Inf
+
+		# Over action 
+		for action_index in actions
+			
+			worst_over_dist = -Inf 
+
+			# Over Disturbance
+			for dis_index in D_list
+	
+				next_states = di_dynamic(s[1],s[2],action_index,dis_index)
+
+				idxs_next, _ = knn(tree, next_states, 1)
+				j= idxs_next[1]
+
+				q = -s_d(next_states[1],next_states[2]) + γ*V[time_index+1,j]
+
+				if q > worst_over_dist
+					worst_over_dist = q 
+				end
 			end
-		println("Value of l:",l)
+			
+			if worst_over_dist < best_over_action
+				best_over_action = worst_over_dist
+			end
 		end
+		
+		V[time_index,state_index] = best_over_action
 	end
+end
 
-end 
 
 
+
+# === Get absolute path for results folder ===
+script_dir = @__DIR__                  # directory where this script is located
+results_dir = joinpath(script_dir, "results")
+
+# Create folder if it doesn't exist
+if !isdir(results_dir)
+    mkdir(results_dir)
+    println("Created folder: $results_dir")
+end
+
+# === Save value function as CSV ===
+csv_path = joinpath(results_dir, "value_function.csv")
+writedlm(csv_path, V, ',')
+println("Value function saved to: $csv_path")
+
+state_csv_path = joinpath(results_dir, "state_2d.csv")
+writedlm(state_csv_path, state_2d, ',')
