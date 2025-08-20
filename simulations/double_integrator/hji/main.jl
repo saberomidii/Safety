@@ -1,230 +1,231 @@
-# Worst case for Double-Integrator system 
-# Saber Omidi 
-using Dates 
-using DelimitedFiles 
-using FileIO
-using Base:mkpath
+# Worst-case Minimum Discounted Reward for Double-Integrator
+# Saber Omidi
 
-using Distributions 
-using StatsFuns
-using Statistics 
-using Random 
-using NearestNeighbors 
-using JuMP
+using Distributions, LinearAlgebra, SparseArrays, Random
+using NearestNeighbors, Plots, Statistics, DelimitedFiles
 
-using SparseArrays 
-using LinearAlgebra 
+println("Packages imported.")
 
-println("Packages are imported.")
+Random.seed!(10) # Sets the seed to 1234
 
-# Random Variable 
-sigma = 1.0
-mean = 0
-no_samples = 100
+# ---------------------------
+# System and grid parameters
+# ---------------------------
+dt = 0.1
+discount_rate = 0.1
+γ = exp(-discount_rate * dt)
 
-
-D_list = spzeros(no_samples,1)
-for index in 1:no_samples
-	D_list[index]= rand(Normal(mean,sigma))
-end 
-
-println("Disturbance List is created.")
-
-# # Signed Distance Function 
-
-function s_d(x::Float64, y::Float64)
-
-	# points x and y coordinate
-	box_p_x=[0.0,4.0]  
-	box_p_y=[-3.0,3.0]
-
-	dx = 0.0 
-	dy = 0.0	
-
-	if (minimum(box_p_x) <= x <= maximum(box_p_x)) &&
-	   (minimum(box_p_y) <= y <= maximum(box_p_y))
-	  	
-#	   println("x and y  are  inside the box") 	
-	  
-	   dx=minimum([abs(x-box_p_x[1]),abs(x-box_p_x[2])])
-	   dy=minimum([abs(y-box_p_y[1]),abs(y-box_p_y[2])])
-	
-	   m_dis= [dx,dy]
-	   return -norm(m_dis)
-        
-        elseif (x > maximum(box_p_x) || x < minimum(box_p_x)) && 
-	       (minimum(box_p_y) <= y <=  maximum(box_p_y))
-	  
- #              println("x is out of the box and y is inside the box")
- 
-	       if x > maximum(box_p_x)
-                 dx = abs(x-maximum(box_p_x))
-	       end
-
-	       if x < minimum(box_p_x)
-                 dx = abs(x-minimum(box_p_x))
-	       end
-
-	       dy = minimum([abs(y-box_p_y[1]),abs(y-box_p_y[2])])
-           
-	       return norm([dx,dy])
-     
-        elseif (y > maximum(box_p_y)|| y < minimum(box_p_y)) && 
-	       (minimum(box_p_x) <= x <= maximum(box_p_x)) 
-
-  #             println("y is out of the box and x is inside the box")
-	       if y > maximum(box_p_y)
-	      dy = abs(y-maximum(box_p_y))
-	    end
-
-	    if y < minimum(box_p_y)
-              dy = abs(y-minimum(box_p_y))
-	    end
-
-	    dx = minimum([abs(x-box_p_x[1]),abs(x-box_p_x[2])])
-
-	    return norm([dx,dy])
-
-       else 
-   #       	  println("x and y are out the box")
-       		   if x > maximum(box_p_x)
-	   	      dx = abs(x-maximum(box_p_x))
-		   end
-
-		   if x < minimum(box_p_x)
-	   	      dx = abs(x-minimum(box_p_x))
-	           end
-
-	           if y > maximum(box_p_y)
-	  	      dy = abs(y-maximum(box_p_y))
-		   end
-
-		   if y < minimum(box_p_y)
-	              dy = abs(y-minimum(box_p_y))
-	           end
-                  
-		   return norm([dx,dy]) 
-       end
-end
-
-
-# Double Integrator Dynamic 
-function di_dynamic(x1::Float64,x2::Float64, u::Float64, d::Float64)
-	
-	 dt= 0.1
-	 x_next = x1 + x2*dt
-	 v_next = x2 + (u+d)*dt
-
-	 return [x_next,v_next]
-end
-
-
-# Grids
-x1_min =   0.0
-x1_max =   4.0
-
-x2_min = -3.0
-x2_max =  3.0
-
-u_min  = -2.0
-u_max  =  2.0
-
-d_min = -Inf 
-d_max =  Inf 
-
-num_points_actions = 11
-
+# State grid
+x1_min, x1_max = -1.0, 5.0
+x2_min, x2_max = -5.0, 5.0
 num_points_state_1 = 161
 num_points_state_2 = 161
-
 
 x1 = collect(LinRange(x1_min, x1_max, num_points_state_1))
 x2 = collect(LinRange(x2_min, x2_max, num_points_state_2))
 
-state_2d = [(x,v) for x in x1 for v in x2]
-
+state_2d = [(x, v) for x in x1 for v in x2]
 nstates = length(state_2d)
 
-actions = collect(LinRange(u_min,u_max, num_points_actions))
+# Control grid
+u_min, u_max = -2.0, 2.0
+num_points_actions = 11
+actions = collect(LinRange(u_min, u_max, num_points_actions))
 
-nactions = length(actions)
+# Disturbances (worst-case)
+sigma = 0.0
+mean = 0.0
+no_samples = 100
+D_list = [rand(Normal(mean, sigma)) for _ in 1:no_samples]
 
-println("Number of states =$nstates")
-println("Number of actions=$nactions")
 
+println("Number of states: $nstates, Number of actions: $(length(actions))")
 
+println("Disturbance list created.")
+# Compute and print upper and lower bounds
+d_min = minimum(D_list)
+d_max = maximum(D_list)
 
-# Build a KD-tree for snapping continuous next-states to the nearest discrete state
-states_matrix = hcat([collect(s) for s in state_2d]...)  # shape: 2 x nstates
+println("Disturbance lower bound: $d_min")
+println("Disturbance upper bound: $d_max")
+# ---------------------------
+# Signed distance function
+# ---------------------------
+# function s_d(x::Float64, y::Float64)
+#     box_p_x = [0.0, 4.0]
+#     box_p_y = [-3.0, 3.0]
+#     dx = max(box_p_x[1] - x, 0.0, x - box_p_x[2])
+#     dy = max(box_p_y[1] - y, 0.0, y - box_p_y[2])
+#     inside_x = box_p_x[1] <= x <= box_p_x[2]
+#     inside_y = box_p_y[1] <= y <= box_p_y[2]
+#     if inside_x && inside_y
+#         dx = minimum(abs.(x .- box_p_x))
+#         dy = minimum(abs.(y .- box_p_y))
+#         return -norm([dx, dy])
+#     else
+#         return norm([dx, dy])
+#     end
+# end
+function s_d(x::Float64, y::Float64)
+    # points x and y coordinate
+    box_p_x = [0.0, 4.0]
+    box_p_y = [-3.0, 3.0]
+
+    dx = 0.0
+    dy = 0.0
+
+    if (minimum(box_p_x) <= x <= maximum(box_p_x)) &&
+       (minimum(box_p_y) <= y <= maximum(box_p_y))
+       
+        dx = minimum([abs(x - box_p_x[1]), abs(x - box_p_x[2])])
+        dy = minimum([abs(y - box_p_y[1]), abs(y - box_p_y[2])])
+        m_dis = [dx, dy]
+        return -norm(m_dis)
+
+    elseif (x > maximum(box_p_x) || x < minimum(box_p_x)) &&
+           (minimum(box_p_y) <= y <= maximum(box_p_y))
+       
+        if x > maximum(box_p_x)
+            dx = abs(x - maximum(box_p_x))
+        end
+        if x < minimum(box_p_x)
+            dx = abs(x - minimum(box_p_x))
+        end
+        dy = minimum([abs(y - box_p_y[1]), abs(y - box_p_y[2])])
+        return norm([dx, dy])
+
+    elseif (y > maximum(box_p_y) || y < minimum(box_p_y)) &&
+           (minimum(box_p_x) <= x <= maximum(box_p_x))
+       
+        if y > maximum(box_p_y)
+            dy = abs(y - maximum(box_p_y))
+        end
+        if y < minimum(box_p_y)
+            dy = abs(y - minimum(box_p_y))
+        end
+        dx = minimum([abs(x - box_p_x[1]), abs(x - box_p_x[2])])
+        return norm([dx, dy])
+
+    else
+        if x > maximum(box_p_x)
+            dx = abs(x - maximum(box_p_x))
+        end
+        if x < minimum(box_p_x)
+            dx = abs(x - minimum(box_p_x))
+        end
+        if y > maximum(box_p_y)
+            dy = abs(y - maximum(box_p_y))
+        end
+        if y < minimum(box_p_y)
+            dy = abs(y - minimum(box_p_y))
+        end
+        return norm([dx, dy])
+    end
+end
+
+# ---------------------------
+# Double integrator dynamics
+# ---------------------------
+function di_dynamic(x::Float64, v::Float64, u::Float64, d::Float64)
+    x_next = x + v*dt
+    v_next = v + (u + d)*dt
+    return [x_next, v_next]
+end
+
+# ---------------------------
+# Surface function
+# ---------------------------
+function compute_surface_function(x1::Vector{Float64}, x2::Vector{Float64})
+    nx1, nx2 = length(x1), length(x2)
+    l = zeros(nx1, nx2)
+    for (i, xi) in enumerate(x1)
+        for (j, vj) in enumerate(x2)
+            l[i,j] = -s_d(xi, vj)
+        end
+    end
+    global L = 1.0
+    # h = clamp.(l .- L, -2L, 0.0)
+	h = l .- L
+    return l, h
+end
+
+l, value_shifted = compute_surface_function(x1, x2)
+V = vec(copy(value_shifted))         # flatten to vector
+V_next = similar(V)
+
+# ---------------------------
+# KD-tree for nearest neighbor
+# ---------------------------
+states_matrix = hcat([collect(s) for s in state_2d]...)  # 2 x nstates
 tree = KDTree(states_matrix)
 
+# ---------------------------
+# Value iteration: MDR worst-case
+# ---------------------------
+epsilon = 1e-3
+diff = Inf
+iteration = 0
 
+while diff > epsilon
+	global iteration
+    iteration += 1
 
-# Value iteration dp
-# const gamma = exp(-discount_rate * dt)  # Discrete discount factor
-dt=0.1
-discount_rate = 0.1
+    for state_index in 1:nstates
+        x, v = state_2d[state_index]
+        best_over_u = -Inf
 
-γ  =  exp(-discount_rate * dt)
+        for u in actions
+            worst_over_d = Inf
 
-time_step = 20
+            for d in D_list
+                next_state = di_dynamic(x, v, u, d)
+                idxs, _ = knn(tree, next_state, 1)
+                j = idxs[1]
 
+                worst_over_d = min(worst_over_d, γ * V[j])
+            end
 
-V= zeros(time_step, nstates)
+            best_over_u = max(best_over_u, worst_over_d)
+        end
 
-# terminal condition 
-for state_index in 1:nstates
-	x, v = state_2d[state_index][1], state_2d[state_index][2]
-	V[time_step,state_index] = -s_d(x, v)
+        # Surface function index using KD-tree
+        idxs_surf, _ = knn(tree, [x,v], 1)
+        closest_index = idxs_surf[1]
+
+        # Minimum of surface function and worst-case value
+        V_next[state_index] = min(value_shifted[closest_index], best_over_u)
+    end
+
+	global  diff 
+    diff = maximum(abs.(V_next .- V))
+    V .= V_next
+
+    if iteration % 10 == 0
+        println("Iteration $iteration, max diff = $diff")
+    end
 end
 
+println("Value iteration converged in $iteration iterations.")
 
-for time_index in (time_step-1):-1:1
-	for state_index in 1:nstates
-		s = state_2d[state_index] 
-		x= s[1]
-		v= s[2]
+# ---------------------------
+# Plot results
+# ---------------------------
+V_matrix = reshape(V, (length(x1), length(x2)))
 
-		# # If already outside, lock value to signed distance and skip
-        # if s_d(x, v) > 0
-        #     V[time_index, state_index] = -Inf 
-        #     continue
-        # end
+heatmap(
+    x1, x2, V_matrix',
+    xlabel="x1 (position)", ylabel="x2 (velocity)",
+    title="Value Function Heatmap",
+    colorbar_title="V", c=:viridis
+)
 
+surface(
+    x1, x2, V_matrix',
+    xlabel="x1", ylabel="x2", zlabel="V",
+    title="Value Function Surface"
+)
 
-		best_over_action = Inf
-
-		# Over action 
-		for action_index in actions
-			
-			worst_over_dist = -Inf 
-
-			# Over Disturbance
-			for dis_index in D_list
-	
-				next_states = di_dynamic(s[1],s[2],action_index,dis_index)
-
-				idxs_next, _ = knn(tree, next_states, 1)
-				j= idxs_next[1]
-
-				q = -s_d(next_states[1],next_states[2]) + γ*V[time_index+1,j]
-
-				if q > worst_over_dist
-					worst_over_dist = q 
-				end
-			end
-			
-			if worst_over_dist < best_over_action
-				best_over_action = worst_over_dist
-			end
-		end
-		
-		V[time_index,state_index] = best_over_action
-	end
-end
-
-
-
+V = V_matrix .+ 0*L  # Gamma :0.9900498337491681
 
 # === Get absolute path for results folder ===
 script_dir = @__DIR__                  # directory where this script is located
@@ -243,3 +244,6 @@ println("Value function saved to: $csv_path")
 
 state_csv_path = joinpath(results_dir, "state_2d.csv")
 writedlm(state_csv_path, state_2d, ',')
+
+
+
