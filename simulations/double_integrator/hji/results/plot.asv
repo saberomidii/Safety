@@ -22,10 +22,10 @@ K2_MIN = -3.0; K2_MAX = 3.0;
 % Load Data and Reconstruct Grid
 % ---------------------------
 try
-    Z = readmatrix('results/value_function_and_levels_sto_1.txt');
+    Z = readmatrix('results/value_function.csv');
     fprintf('Successfully loaded value_function.csv.\n');
 catch ME
-    error('Could not find or read "results/value_function_and_levels_sto.csv". Please run the Julia script first to generate the file.');
+    error('Could not find or read "results/value_function.csv". Please run the Julia script first to generate the file.');
 end
 
 x1_grid = linspace(X1_MIN, X1_MAX, NUM_POINTS_STATE_1);
@@ -55,8 +55,8 @@ hold off;
 % ---------------------------
 DISCOUNT_RATE =0.1;
 TAU_BAR = 2;
-L = 2.23606797749979;
-under_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR));
+L = 2;
+over_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR));
 
 
 figure('Name', 'Zero Level Set');
@@ -65,9 +65,9 @@ xlabel('x_1 (position)');
 ylabel('x_2 (velocity)');
 title('Zero Level Set of Value Function');
 hold on;
-contour(x1_grid, x2_grid, Z', [0.0, 0.0], 'green', 'LineWidth', 2);  % Plot only the zero level set
-contour(x1_grid, x2_grid, Z', [under_approx_level, under_approx_level], 'green','LineStyle','--', 'LineWidth', 2);  % Plot only the zero level set
-legend('Over-Approximation', 'Under-Approximation');
+contour(x1_grid, x2_grid, Z', [0.0, 0.0], 'r', 'LineWidth', 2);  % Plot only the zero level set
+contour(x1_grid, x2_grid, Z', [over_approx_level, over_approx_level], 'green', 'LineWidth', 2);  % Plot only the zero level set
+legend('Over app Boundary', 'Under-Approximation (Guaranteed Safe)', 'Over-Approximation');
 hold off;
 
 % ---------------------------
