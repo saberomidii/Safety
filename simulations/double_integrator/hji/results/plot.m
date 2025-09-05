@@ -2,7 +2,7 @@
 % double-integrator system. It loads the saved value function and creates
 % several plots to analyze the results.
 
-clear; clc; close all;
+clear; clc;
 
 fprintf('Plotting results from Julia simulation...\n');
 
@@ -22,7 +22,7 @@ K2_MIN = -3.0; K2_MAX = 3.0;
 % Load Data and Reconstruct Grid
 % ---------------------------
 try
-    Z = readmatrix('results/value_function_and_levels_sto_1.txt');
+    Z = readmatrix('results/value_function_and_levels.txt');
     fprintf('Successfully loaded value_function.csv.\n');
 catch ME
     error('Could not find or read "results/value_function_and_levels_sto.csv". Please run the Julia script first to generate the file.');
