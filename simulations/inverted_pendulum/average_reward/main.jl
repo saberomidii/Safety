@@ -41,8 +41,8 @@ const x_2_max = 1.0
 const u_min = -3.0
 const u_max = 3.0
 
-const d_min=-Inf
-const d_max= Inf 
+const d_min=-1
+const d_max= 1 
 
 
 const num_points_action = 21
@@ -77,7 +77,7 @@ println("Number of actions = $nactions")
 
 function is_safe(x::Float64, v::Float64)
     # "Safe" region: x in [0,4], v in [-3,3]
-    return (0.0 <= x <= 4.0) && (-3.0 <= v <= 3.0)
+    return (-0.3 <= x <= 0.3) && (-0.6 <= v <= 0.6)
 end
 
 # Continuous (noisy) dynamics for double-integrator

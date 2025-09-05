@@ -2,7 +2,7 @@
 % double-integrator system. It loads the saved value function and creates
 % several plots to analyze the results.
 
-clear; clc; close all;
+clear; clc;
 
 fprintf('Plotting results from Julia simulation...\n');
 
@@ -41,7 +41,7 @@ end
 box_width = K1_MAX - K1_MIN;
 box_height = K2_MAX - K2_MIN;
 figure('Name', 'Value Function Contour');
-contourf(x1_grid, x2_grid, Z', 30); % Transpose Z to match axes
+contourf(x1_grid, x2_grid, Z, 30); % Transpose Z to match axes
 colorbar;
 xlabel('x_1 (position)');
 ylabel('x_2 (velocity)');
@@ -65,8 +65,8 @@ xlabel('x_1 (position)');
 ylabel('x_2 (velocity)');
 title('Zero Level Set of Value Function');
 hold on;
-contour(x1_grid, x2_grid, Z', [0.0, 0.0], 'green', 'LineWidth', 2);  % Plot only the zero level set
-contour(x1_grid, x2_grid, Z', [under_approx_level, under_approx_level], 'green','LineStyle','--', 'LineWidth', 2);  % Plot only the zero level set
+contour(x1_grid, x2_grid, Z, [0.0, 0.0], 'green', 'LineWidth', 2);  % Plot only the zero level set
+contour(x1_grid, x2_grid, Z, [under_approx_level, under_approx_level], 'green','LineStyle','--', 'LineWidth', 2);  % Plot only the zero level set
 legend('Over-Approximation', 'Under-Approximation');
 hold off;
 
@@ -74,7 +74,7 @@ hold off;
 % Plot 3: 3D Surface
 % ---------------------------
 figure('Name', 'Value Function Surface');
-surf(x1_grid, x2_grid, Z'); % Transpose Z to match axes
+surf(x1_grid, x2_grid, Z); % Transpose Z to match axes
 shading interp;
 colorbar;
 xlabel('x_1 (position)');
@@ -85,7 +85,7 @@ title('Value Function Surface');
 % ---------------------------
 % Extract Zero-Level Set Contour and Compute Area
 % ---------------------------
-C = contourc(x1_grid, x2_grid, Z', [0.0 0.0]); % Get contour matrix for zero level set
+C = contourc(x1_grid, x2_grid, Z, [0.0 0.0]); % Get contour matrix for zero level set
 
 total_area = 0;
 k = 1;
