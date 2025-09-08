@@ -35,13 +35,16 @@ const MAX_ITER = 1000
 # τ̄ (tau_bar) is the assumed upper bound on the time-to-target.
 # It is used to calculate the over-approximation boundary.
 const TAU_BAR = 2.0
+const L = 5.0
+
+coef_lower_bound = exp(-DISCOUNT_RATE*TAU_BAR)
 
 # Safe Box K = [K1_MIN, K1_MAX] x [K2_MIN, K2_MAX]
 const K1_MIN, K1_MAX = 0.0, 4.0
 const K2_MIN, K2_MAX = -3.0, 3.0
 
 # Disturbance parameters for worst-case analysis
-const SIGMA = 1.0
+const SIGMA = 0.0
 const MEAN = 0.0
 const NUM_SAMPLES = 100
 const d_min = -1.0
@@ -60,10 +63,10 @@ function signed_distance_to_K(x, y)
     dist_outside = norm([dx, dy])
 
     if dist_outside > 0
-        return dist_outside
+        return -dist_outside
     else
         dist_to_boundary = min(x - K1_MIN, K1_MAX - x, y - K2_MIN, K2_MAX - y)
-        return -dist_to_boundary
+        return dist_to_boundary
     end
 end
 
@@ -80,20 +83,18 @@ end
 # ---------------------------
 # Surface function l(x) and h(x)
 # ---------------------------
-function compute_surface_functions(x1_grid, x2_grid)
+function compute_surface_functions(x1_grid, x2_grid, L)
     nx1, nx2 = length(x1_grid), length(x2_grid)
     l = zeros(nx1, nx2)
     for (i, xi) in enumerate(x1_grid)
         for (j, vj) in enumerate(x2_grid)
-            l[i, j] = -signed_distance_to_K(xi, vj)
+            l[i, j] = min(max(signed_distance_to_K(xi, vj),-L),L)
         end
     end
 
-    global L
-    L = maximum(abs.(l))
     h = l .- L
 
-    return l, h, L
+    return l, h
 end
 
 
@@ -119,7 +120,7 @@ function main()
     println("Minimum: $min_val, Maximum: $max_val") # Output: Minimum: 1, Maximum: 9
 
 
-    _, h_matrix, L = compute_surface_functions(x1_grid, x2_grid)
+    _, h_matrix = compute_surface_functions(x1_grid, x2_grid, L)
 
     V = vec(copy(h_matrix))
     h_vec = copy(V)
@@ -176,7 +177,9 @@ function main()
         @warn "Value iteration did not converge within $MAX_ITER iterations."
     end
         
-    Z = reshape(V .+ L, (NUM_POINTS_STATE_1, NUM_POINTS_STATE_2))
+    ### Adding L to U to calcuate Z. 
+    Z = reshape(V .+ L, (NUM_POINTS_STATE_1, NUM_POINTS_STATE_2)) #upper bound. 
+
 
     # --- Save Results for Server ---
     script_dir = @__DIR__
@@ -186,30 +189,18 @@ function main()
         println("Created folder: $results_dir")
     end
 
-    # Calculate levels for approximations based on the paper's theory
-    under_approx_level = 0.0
-    over_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR))
     
-    @printf "\nUnder-approximation level (Z(x)=0): %.4f\n" under_approx_level
-    @printf "Over-approximation level (using τ̄=%.1f): %.4f\n" TAU_BAR over_approx_level
-
     # Save everything to a single, self-contained text file for later plotting
-    output_path = joinpath(results_dir, "value_function_and_levels_sto_1.txt")
+    output_path = joinpath(results_dir, "Value_function.txt")
     
-    open(output_path, "w") do f
-        # Write header with metadata for easy parsing later
-        println(f, "# Results for Double Integrator MDR Simulation")
-        println(f, "# Under-Approximation Level (Z=0)")
-        writedlm(f, [under_approx_level], ',')
-        println(f, "# Over-Approximation Level (Z=L(1-exp(-λτ̄)))")
-        writedlm(f, [over_approx_level], ',')
-        println(f, "# Z Value Function Matrix ($(NUM_POINTS_STATE_1)x$(NUM_POINTS_STATE_2))")
-        
-        # Write the Z matrix
-        writedlm(f, Z, ',')
-    end
+    # Write the Z matrix
+    writedlm(output_path, Z, ',')
+    
 
-    println("Final value function and approximation levels saved to: $output_path")
+    println("Final value function is saved to: $output_path")
+
+
+
 
 end
 

@@ -1,7 +1,6 @@
 % This script visualizes the results of the MDR value iteration for the
 % double-integrator system. It loads the saved value function and creates
 % several plots to analyze the results.
-
 clear; clc;
 
 fprintf('Plotting results from Julia simulation...\n');
@@ -22,7 +21,7 @@ K2_MIN = -3.0; K2_MAX = 3.0;
 % Load Data and Reconstruct Grid
 % ---------------------------
 try
-    Z = readmatrix('results/value_function_and_levels.txt');
+    Z = readmatrix('results/Value_function.txt')';
     fprintf('Successfully loaded value_function.csv.\n');
 catch ME
     error('Could not find or read "results/value_function_and_levels_sto.csv". Please run the Julia script first to generate the file.');
@@ -35,13 +34,19 @@ if ~isequal(size(Z), [NUM_POINTS_STATE_1, NUM_POINTS_STATE_2])
     error('The dimensions of the loaded value function do not match the grid parameters.');
 end
 
+% Z is upper bound 
+    L = sqrt(5);
+    TAU_BAR = 2;
+    DISCOUNT_RATE= 0.1;
+    coef_lower_bound = exp(-DISCOUNT_RATE*TAU_BAR);
+    Lower_bound = (Z - L * (1 - coef_lower_bound)) / coef_lower_bound;
 % ---------------------------
 % Plot 1: Filled Contour with Safe Box
 % ---------------------------
 box_width = K1_MAX - K1_MIN;
 box_height = K2_MAX - K2_MIN;
 figure('Name', 'Value Function Contour');
-contourf(x1_grid, x2_grid, Z', 30); % Transpose Z to match axes
+contourf(x1_grid, x2_grid, Z, 30); % Transpose Z to match axes
 colorbar;
 xlabel('x_1 (position)');
 ylabel('x_2 (velocity)');
@@ -53,11 +58,6 @@ hold off;
 % ---------------------------
 % Plot 2: Zero Level Set with Safe Box
 % ---------------------------
-DISCOUNT_RATE =0.1;
-TAU_BAR = 2;
-L = 2.23606797749979;
-under_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR));
-
 
 figure('Name', 'Zero Level Set');
 rectangle('Position',[K1_MIN, K2_MIN, box_width, box_height], 'EdgeColor','k','LineWidth',2);
@@ -65,16 +65,16 @@ xlabel('x_1 (position)');
 ylabel('x_2 (velocity)');
 title('Zero Level Set of Value Function');
 hold on;
-contour(x1_grid, x2_grid, Z', [0.0, 0.0], 'green', 'LineWidth', 2);  % Plot only the zero level set
-contour(x1_grid, x2_grid, Z', [under_approx_level, under_approx_level], 'green','LineStyle','--', 'LineWidth', 2);  % Plot only the zero level set
-legend('Over-Approximation', 'Under-Approximation');
+contour(x1_grid, x2_grid, Z, [0.0, 0.0], 'green', 'LineWidth', 2);  % Plot only the zero level set
+contour(x1_grid, x2_grid, Lower_bound, [0.0, 0.0], 'green','LineStyle','--', 'LineWidth', 2);  % Plot only the zero level set
+legend('Upper bound', 'Lower bound');
 hold off;
 
 % ---------------------------
 % Plot 3: 3D Surface
 % ---------------------------
 figure('Name', 'Value Function Surface');
-surf(x1_grid, x2_grid, Z'); % Transpose Z to match axes
+surf(x1_grid, x2_grid, Z); % Transpose Z to match axes
 shading interp;
 colorbar;
 xlabel('x_1 (position)');
@@ -82,29 +82,31 @@ ylabel('x_2 (velocity)');
 zlabel('Value Z(x)');
 title('Value Function Surface');
 
-% ---------------------------
-% Extract Zero-Level Set Contour and Compute Area
-% ---------------------------
-C = contourc(x1_grid, x2_grid, Z', [0.0 0.0]); % Get contour matrix for zero level set
+% ----------------------------------------------------
+% Count Nodes Inside Each Safe Set Approximation
+% ----------------------------------------------------
+fprintf('\n--- Node Count & Percentage Results ---\n');
 
-total_area = 0;
-k = 1;
-while k < size(C,2)
-    n = C(2,k);               % Number of points in this contour segment
-    x_contour = C(1, k+1:k+n);
-    y_contour = C(2, k+1:k+n);
-    
-    % Area of polygon defined by this contour segment
-    area_segment = polyarea(x_contour, y_contour);
-    total_area = total_area + area_segment;
-    
-    k = k + n + 1;            % Move to the start of the next contour segment
-end
+% Total number of nodes in the state space grid
+total_nodes = NUM_POINTS_STATE_1 * NUM_POINTS_STATE_2;
 
-fprintf('\nTotal area enclosed by the zero-level set: %f\n', total_area);
+% --- Count for the Upper Bound (Z >= 0) ---
+% Create a logical matrix: 1 where Z>=0, 0 otherwise
+upper_bound_mask = (Z >= 0);
+% Count the number of 'true' (1) elements
+nodes_in_upper_bound = sum(upper_bound_mask, 'all');
+percent_upper = (nodes_in_upper_bound / total_nodes) * 100;
 
-% Total area of the state space grid
-state_space_area = (X1_MAX - X1_MIN) * (X2_MAX - X2_MIN);
-safe_set_percentage = (total_area / state_space_area) * 100;
+fprintf('Upper Bound (Z>=0): %d / %d nodes (%.2f%%)\n', ...
+        nodes_in_upper_bound, total_nodes, percent_upper);
 
-fprintf('The safe set represents %.2f%% of the state space.\n', safe_set_percentage);
+
+% --- Count for the Lower Bound (V >= 0) ---
+% Create a logical matrix for the lower bound
+lower_bound_mask = (Lower_bound >= 0);
+% Count the number of 'true' (1) elements
+nodes_in_lower_bound = sum(lower_bound_mask, 'all');
+percent_lower = (nodes_in_lower_bound / total_nodes) * 100;
+
+fprintf('Lower Bound (V>=0): %d / %d nodes (%.2f%%)\n', ...
+        nodes_in_lower_bound, total_nodes, percent_lower);
