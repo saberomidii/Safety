@@ -1,0 +1,4 @@
+--- Pendulum Node Count & Percentage Results ---
+
+Upper Bound (Z>=0): 4887 / 40401 nodes (12.10%)
+Lower Bound (V>=0): 3589 / 40401 nodes (8.88%)

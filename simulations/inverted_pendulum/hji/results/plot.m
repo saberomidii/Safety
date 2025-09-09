@@ -22,7 +22,7 @@ K2_MIN = -0.6; K2_MAX = 0.6;
 % Load Data and Reconstruct Grid
 % ---------------------------
 try
-    Z = readmatrix('results/value_function_and_levels_deter.txt')';
+    Z = readmatrix('results/Value_function.txt');
     fprintf('Successfully loaded value_function.csv.\n');
 catch ME
     error('Could not find or read "results/value_function_and_levels_sto.csv". Please run the Julia script first to generate the file.');
@@ -55,7 +55,7 @@ hold off;
 % ---------------------------
 DISCOUNT_RATE =0.1;
 TAU_BAR = 2;
-L = 0.44;
+L = 0.447213595499958;
 under_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR));
 
 

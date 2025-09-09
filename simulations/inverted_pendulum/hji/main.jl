@@ -1,4 +1,4 @@
-# Original code by Saber Omidi, 
+# Original code by Saber Omidi,
 
 using LinearAlgebra
 using NearestNeighbors
@@ -9,76 +9,80 @@ using Distributions
 
 println("Packages imported.")
 
-Random.seed!(123)
+Random.seed!(10)
+
 # ---------------------------
-# System and grid parameters
+# Game Setup Switch
+# ---------------------------
+# Set to 'false' to run the one-player benchmark.
+# Set to 'true' to run a two-player (control vs. disturbance) game.
+const IS_TWO_PLAYER_GAME = true
+
+# ---------------------------
+# System and grid parameters for Inverted Pendulum
 # ---------------------------
 const DT = 0.1
 const DISCOUNT_RATE = 0.1 # This is λ
 const GAMMA = exp(-DISCOUNT_RATE * DT)
 
-# State grid
+# State grid (pendulum angle and angular velocity)
 const X1_MIN, X1_MAX = -0.5, 0.5
 const X2_MIN, X2_MAX = -1.0, 1.0
 const NUM_POINTS_STATE_1 = 201
 const NUM_POINTS_STATE_2 = 201
 
-# Control grid
+# Control grid (torque)
 const U_MIN, U_MAX = -3.0, 3.0
-const NUM_POINTS_ACTIONS = 21
+const NUM_POINTS_ACTIONS = 41
 
 # Value iteration parameters
-const TOLERANCE = 1e-4 # Epsilon for convergence
+const TOLERANCE = 1e-6
 const MAX_ITER = 1000
 
 # --- Key Parameter from Paper ---
-# τ̄ (tau_bar) is the assumed upper bound on the time-to-target.
-# It is used to calculate the over-approximation boundary.
 const TAU_BAR = 2.0
 
-# Safe Box K = [K1_MIN, K1_MAX] x [K2_MIN, K2_MAX]
+# Safe Box K for Pendulum
 const K1_MIN, K1_MAX = -0.3, 0.3
 const K2_MIN, K2_MAX = -0.6, 0.6
 
-# Disturbance parameters for worst-case analysis
-const SIGMA = 0.0
+# Disturbance parameters
+const SIGMA = 1.0
 const MEAN = 0.0
 const NUM_SAMPLES = 100
-const d_min = -1.0
-const d_max =  1.0
+const d_min = -0.5
+const d_max =  0.5
 
 # ---------------------------
 # Signed distance function to Safe Set K
 # ---------------------------
-"""
-Calculates the signed distance to the safe set K (a box).
-Returns > 0 outside the box, < 0 inside the box.
-"""
-function signed_distance_to_K(x, y)
-    dx = max(K1_MIN - x, 0.0, x - K1_MAX)
-    dy = max(K2_MIN - y, 0.0, y - K2_MAX)
-    dist_outside = norm([dx, dy])
+function signed_distance_to_box(px, py, box_x_min, box_x_max, box_y_min, box_y_max)
+    dx = max(box_x_min - px, 0.0, px - box_x_max)
+    dy = max(box_y_min - py, 0.0, py - box_y_max)
+    dist_outside = sqrt(dx^2 + dy^2)
 
-    if dist_outside > 0
+    if dist_outside > 0.0
         return dist_outside
     else
-        dist_to_boundary = min(x - K1_MIN, K1_MAX - x, y - K2_MIN, K2_MAX - y)
-        return -dist_to_boundary
+        dist_to_xmin = px - box_x_min
+        dist_to_xmax = box_x_max - px
+        dist_to_ymin = py - box_y_min
+        dist_to_ymax = box_y_max - py
+        return -min(dist_to_xmin, dist_to_xmax, dist_to_ymin, dist_to_ymax)
     end
 end
 
-
 # ---------------------------
-# Double integrator dynamics
+# Inverted Pendulum Dynamics
 # ---------------------------
-function di_dynamic(x, v, u, d)
-    #system parameters 
-	m=2.0
-	g=10.0
-	l=1.0
+function pendulum_dynamic(x, v, u, d)
+    # System parameters
+    m=2.0
+    g=10.0
+    l=1.0
 
     x_next = x + v * DT
-    v_next = v + (g/l*sin(x)+1/m*l^2*u + d) * DT
+    v_next = v + (g/l*sin(x) + (1/(m*l^2))*u + d) * DT
     return [x_next, v_next]
 end
 
@@ -87,20 +91,30 @@ end
 # ---------------------------
 function compute_surface_functions(x1_grid, x2_grid)
     nx1, nx2 = length(x1_grid), length(x2_grid)
-    l = zeros(nx1, nx2)
+    
+    # First, calculate the unclipped cost to find the maximum magnitude L
+    l_unclipped = zeros(nx1, nx2)
     for (i, xi) in enumerate(x1_grid)
         for (j, vj) in enumerate(x2_grid)
-            l[i, j] = -signed_distance_to_K(xi, vj)
+            s_K = signed_distance_to_box(xi, vj, K1_MIN, K1_MAX, K2_MIN, K2_MAX)
+            l_unclipped[i, j] = -s_K
         end
     end
+    L = maximum(abs.(l_unclipped))
+    println("Dynamically calculated L = $L")
 
-    global L
-    L = maximum(abs.(l))
+    # Now, compute the final, clipped l(x) as specified in the paper
+    l = zeros(nx1, nx2)
+    for i in 1:nx1
+        for j in 1:nx2
+            l_val = l_unclipped[i, j]
+            l[i, j] = min(max(l_val, -L), L)
+        end
+    end
+    
     h = l .- L
-
     return l, h, L
 end
-
 
 # ---------------------------
 # Main script execution
@@ -110,31 +124,26 @@ function main()
     x1_grid = collect(LinRange(X1_MIN, X1_MAX, NUM_POINTS_STATE_1))
     x2_grid = collect(LinRange(X2_MIN, X2_MAX, NUM_POINTS_STATE_2))
     
-    state_2d = [(x, v) for x in x1_grid for v in x2_grid]
+    # Loop order changed for easier plotting in MATLAB (x1 varies along columns)
+    state_2d = [(x, v) for v in x2_grid for x in x1_grid]
     nstates = length(state_2d)
     
     actions = collect(LinRange(U_MIN, U_MAX, NUM_POINTS_ACTIONS))
     println("Number of states: $nstates, Number of actions: $(length(actions))")
 
-    # --- Disturbance setup ---
     D_list = [clamp(rand(Normal(MEAN, SIGMA)), d_min, d_max) for _ in 1:NUM_SAMPLES]
-    println("Disturbance samples created with σ = $SIGMA.")
-
-    min_val, max_val = extrema(D_list)
-    println("Minimum: $min_val, Maximum: $max_val") # Output: Minimum: 1, Maximum: 9
-
+    if IS_TWO_PLAYER_GAME println("Running in TWO-PLAYER mode.") else println("Running in ONE-PLAYER (benchmark) mode.") end
 
     _, h_matrix, L = compute_surface_functions(x1_grid, x2_grid)
+    
+    # Vectorize h_matrix (transpose needed to match state_2d order) and initialize U
+    U = vec(copy(h_matrix')) 
+    h_vec = copy(U)
+    U_next = similar(U)
 
-    V = vec(copy(h_matrix))
-    h_vec = copy(V)
-    V_next = similar(V)
-
-    # --- KD-tree for nearest neighbor lookups ---
     states_matrix = hcat([collect(s) for s in state_2d]...)
     tree = KDTree(states_matrix)
 
-    # --- Value Iteration ---
     println("\nStarting value iteration for λ = $DISCOUNT_RATE...")
     diff = Inf
     iteration = 0
@@ -142,81 +151,72 @@ function main()
     @time while diff > TOLERANCE && iteration < MAX_ITER
         iteration += 1
         max_diff = 0.0
-
         for state_index in 1:nstates
             x, v = state_2d[state_index]
             best_over_u = -Inf
-
             for u in actions
-                worst_over_d = Inf
-                for d in D_list
-                    next_state = di_dynamic(x, v, u, d)
-                    idxs, _ = knn(tree, next_state, 1) # Corrected function call
+                if IS_TWO_PLAYER_GAME
+                    worst_over_d = Inf
+                    for d in D_list
+                        next_state = pendulum_dynamic(x, v, u, d)
+                        idxs, _ = knn(tree, next_state, 1)
+                        j = idxs[1]
+                        val_at_neighbor = GAMMA * U[j]
+                        worst_over_d = min(worst_over_d, val_at_neighbor)
+                    end
+                    best_over_u = max(best_over_u, worst_over_d)
+                else
+                    next_state = pendulum_dynamic(x, v, u, 0.0)
+                    idxs, _ = knn(tree, next_state, 1)
                     j = idxs[1]
-                    val_at_neighbor = GAMMA * V[j]
-                    worst_over_d = min(worst_over_d, val_at_neighbor)
+                    val_at_neighbor = GAMMA * U[j]
+                    best_over_u = max(best_over_u, val_at_neighbor)
                 end
-                best_over_u = max(best_over_u, worst_over_d)
             end
-
-            V_next[state_index] = min(h_vec[state_index], best_over_u)
-            
-            current_diff = abs(V_next[state_index] - V[state_index])
-            if current_diff > max_diff
-                max_diff = current_diff
-            end
+            U_next[state_index] = min(h_vec[state_index], best_over_u)
+            current_diff = abs(U_next[state_index] - U[state_index])
+            if current_diff > max_diff max_diff = current_diff end
         end
-
-        V .= V_next
+        U .= U_next
         diff = max_diff
-
-        if iteration % 10 == 0
-            @printf "Iteration %4d, max diff = %.6f\n" iteration diff
-        end
+        if iteration % 10 == 0 @printf "Iteration %4d, max diff = %.6f\n" iteration diff end
     end
 
-    if diff <= TOLERANCE
-        println("Value iteration converged in $iteration iterations.")
-    else
-        @warn "Value iteration did not converge within $MAX_ITER iterations."
-    end
+    if diff <= TOLERANCE println("Value iteration converged in $iteration iterations.") else @warn "Did not converge." end
         
-    Z = reshape(V .+ L, (NUM_POINTS_STATE_1, NUM_POINTS_STATE_2))
+    # Reshape U back into Z matrix. Transpose to get (x1, x2) orientation.
+    Z = reshape(U .+ L, (NUM_POINTS_STATE_1, NUM_POINTS_STATE_2))'
 
-    # --- Save Results for Server ---
+    # --- Save Results ---
     script_dir = @__DIR__
     results_dir = joinpath(script_dir, "results")
-    if !isdir(results_dir)
-        mkdir(results_dir)
-        println("Created folder: $results_dir")
-    end
-
-    # Calculate levels for approximations based on the paper's theory
-    under_approx_level = 0.0
-    over_approx_level = L * (1 - exp(-DISCOUNT_RATE * TAU_BAR))
+    if !isdir(results_dir) mkdir(results_dir) end
     
-    @printf "\nUnder-approximation level (Z(x)=0): %.4f\n" under_approx_level
-    @printf "Over-approximation level (using τ̄=%.1f): %.4f\n" TAU_BAR over_approx_level
+    output_path = joinpath(results_dir, "Value_function.txt")
+    writedlm(output_path, Z, ',')
+    println("Final value function saved to: $output_path")
 
-    # Save everything to a single, self-contained text file for later plotting
-    output_path = joinpath(results_dir, "value_function_and_levels_deter.txt")
-    
-    open(output_path, "w") do f
-        # Write header with metadata for easy parsing later
-        println(f, "# Results for Double Integrator MDR Simulation")
-        println(f, "# Under-Approximation Level (Z=0)")
-        writedlm(f, [under_approx_level], ',')
-        println(f, "# Over-Approximation Level (Z=L(1-exp(-λτ̄)))")
-        writedlm(f, [over_approx_level], ',')
-        println(f, "# Z Value Function Matrix ($(NUM_POINTS_STATE_1)x$(NUM_POINTS_STATE_2))")
-        
-        # Write the Z matrix
-        writedlm(f, Z, ',')
+    # --- Node Count Analysis and Save to File ---
+    println("Performing node count analysis...")
+    coef_lower_bound = exp(-DISCOUNT_RATE * TAU_BAR)
+    Lower_bound_V = (Z .- L * (1 - coef_lower_bound)) ./ coef_lower_bound
+    total_nodes = NUM_POINTS_STATE_1 * NUM_POINTS_STATE_2
+    nodes_in_upper_bound = sum(Z .>= 0)
+    percent_upper = (nodes_in_upper_bound / total_nodes) * 100
+    nodes_in_lower_bound = sum(Lower_bound_V .>= 0)
+    percent_lower = (nodes_in_lower_bound / total_nodes) * 100
+
+    analysis_path = joinpath(results_dir, "pendulum_analysis.txt")
+    open(analysis_path, "w") do f
+        write(f, "--- Pendulum Node Count & Percentage Results ---\n\n")
+        line1 = @sprintf("Upper Bound (Z>=0): %d / %d nodes (%.2f%%)\n",
+                         nodes_in_upper_bound, total_nodes, percent_upper)
+        write(f, line1)
+        line2 = @sprintf("Lower Bound (V>=0): %d / %d nodes (%.2f%%)\n",
+                         nodes_in_lower_bound, total_nodes, percent_lower)
+        write(f, line2)
     end
-
-    println("Final value function and approximation levels saved to: $output_path")
-
+    println("Analysis summary saved to: $analysis_path")
 end
 
-# Run the main function
 main()
