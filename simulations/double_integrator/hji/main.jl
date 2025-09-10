@@ -6,6 +6,14 @@ using DelimitedFiles
 using Random
 using Distributions
 
+# Worst-case Minimum Discounted Reward for Double-Integrator
+# Saber Omidi
+
+using Distributions, LinearAlgebra, SparseArrays, Random
+using NearestNeighbors, Statistics, DelimitedFiles
+
+
+#using Plots
 println("Packages imported.")
 
 Random.seed!(10)
@@ -247,5 +255,50 @@ function main()
     println("Analysis summary saved to: $analysis_path")
 end
 
+<<<<<<< HEAD
 # Run the main function
 main()
+=======
+println("Value iteration converged in $iteration iterations.")
+
+# ---------------------------
+# Plot results
+# ---------------------------
+V_matrix = reshape(V, (length(x1), length(x2)))
+
+#heatmap(
+#    x1, x2, V_matrix',
+#    xlabel="x1 (position)", ylabel="x2 (velocity)",
+#    title="Value Function Heatmap",
+#    colorbar_title="V", c=:viridis
+#)
+
+#surface(
+#    x1, x2, V_matrix',
+#    xlabel="x1", ylabel="x2", zlabel="V",
+#    title="Value Function Surface"
+#)
+
+V = V_matrix .+ 0*L  # Gamma :0.9900498337491681
+
+# === Get absolute path for results folder ===
+script_dir = @__DIR__                  # directory where this script is located
+results_dir = joinpath(script_dir, "results")
+
+# Create folder if it doesn't exist
+if !isdir(results_dir)
+    mkdir(results_dir)
+    println("Created folder: $results_dir")
+end
+
+# === Save value function as CSV ===
+csv_path = joinpath(results_dir, "value_function.csv")
+writedlm(csv_path, V, ',')
+println("Value function saved to: $csv_path")
+
+state_csv_path = joinpath(results_dir, "state_2d.csv")
+writedlm(state_csv_path, state_2d, ',')
+
+
+
+>>>>>>> c961578 (Update main.jl file)
