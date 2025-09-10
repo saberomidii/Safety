@@ -31,13 +31,13 @@ const GAMMA = exp(-DISCOUNT_RATE * DT)
 const X1_MIN, X1_MAX = -2.0, 2.0
 const X2_MIN, X2_MAX = -2.0, 2.0
 const X3_MIN, X3_MAX = 0.0, 2π
-const NUM_POINTS_STATE_1 = 51
-const NUM_POINTS_STATE_2 = 51
-const NUM_POINTS_STATE_3 = 51
+const NUM_POINTS_STATE_1 = 201
+const NUM_POINTS_STATE_2 = 201
+const NUM_POINTS_STATE_3 = 21
 
 # Control grid (steering rate)
 const U_MIN, U_MAX = -1.0, 1.0 # Turn rate in rad/s
-const NUM_POINTS_ACTIONS = 21
+const NUM_POINTS_ACTIONS = 41
 
 # Constant velocity
 const V = 1.0 # m/s
@@ -50,16 +50,16 @@ const MAX_ITER = 1000
 const TAU_BAR = 2.0
 
 # Safe Box K for Dubins Car (in x, y)
-const K1_MIN, K1_MAX = -0.5, 0.5
-const K2_MIN, K2_MAX = -0.5, 0.5
+const K1_MIN, K1_MAX = -1, 1
+const K2_MIN, K2_MAX = -2, 2
 # The heading (theta) is not restricted for the safe set.
 
 # Disturbance parameters (affecting steering)
-const SIGMA_D = 0.1
+const SIGMA_D = 1.0
 const MEAN_D = 0.0
 const NUM_SAMPLES = 100
-const d_min = -0.1
-const d_max =  0.1
+const d_min = -1
+const d_max =  1
 
 # ---------------------------
 # Signed distance function to Safe Set K (2D box)
