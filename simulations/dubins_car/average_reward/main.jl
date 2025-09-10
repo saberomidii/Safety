@@ -25,32 +25,32 @@ using LinearAlgebra
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
 # Optional: set a random seed if desired
-Random.seed!(123)
+Random.seed!(10)
 
 # Single noise standard deviation
 const sigma = 1.0
 const threshold_for_transit = 0.001
 
-const x_1_min = -0.5
-const x_1_max = 0.5
+const x_1_min = -2.0
+const x_1_max = 2.0
 
-const x_2_min = -1.0
-const x_2_max = 1.0
+const x_2_min = -2.0
+const x_2_max =  2.0
 
-const x_3_min = pi/3
-const x_3_max = 2*pi/3
+const x_3_min = 0
+const x_3_max = 2π
 
-const u_min = -0.5
-const u_max =  0.5
+const u_min = -1.0
+const u_max =  1.0
 
-const d_min=-Inf
-const d_max= Inf
+const d_min=-1
+const d_max= 1
 
-const num_points_action =11
+const num_points_action =41
 
-const num_points_state_1=76
-const num_points_state_2=76
-const num_points_state_3=25
+const num_points_state_1=201
+const num_points_state_2=201
+const num_points_state_3=21
 
 
 
@@ -196,8 +196,18 @@ function solve_primal_case()
     # Setup model
     model = Model(Mosek.Optimizer)
 
-    # -- stop when |best_primal – best_bound| ≤ 1 × 10⁻³
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1.0e-3)
+    # --- CORRECTED TOLERANCE SETTINGS FOR A LINEAR PROGRAM ---
+    # Set the tolerance for the interior-point optimizer's relative gap.
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-4)
+
+    # You can also set primal and dual feasibility tolerances if needed.
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-4)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-4)
+    
+    # Setting this to 0 (MSK_OFF) disables the basis identification procedure.
+    set_optimizer_attribute(model, "MSK_IPAR_INTPNT_BASIS", 0)
+    
+    set_time_limit_sec(model, 60.0)
 
     # Define variables: g[s] and h[s] for each state
     @time begin
