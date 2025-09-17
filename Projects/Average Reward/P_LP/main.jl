@@ -40,11 +40,11 @@ const x_2_max = 5.0
 const u_min = -2.0
 const u_max = 2.0
 
-const d_min=-Inf
-const d_max= Inf 
+const d_min=-1
+const d_max= 1 
 
 
-const num_points_action = 11
+const num_points_action = 41
 const num_points_state = 161
 
 # Number of random samples used when constructing transitions

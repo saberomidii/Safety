@@ -29,7 +29,7 @@ const IS_TWO_PLAYER_GAME = true
 # System and grid parameters
 # ---------------------------
 const DT = 0.1
-const DISCOUNT_RATE = 0.1 # This is λ
+const DISCOUNT_RATE = 0.2# This is λ
 const GAMMA = exp(-DISCOUNT_RATE * DT)
 
 # State grid
@@ -43,13 +43,13 @@ const U_MIN, U_MAX = -2.0, 2.0
 const NUM_POINTS_ACTIONS = 41
 
 # Value iteration parameters
-const TOLERANCE = 1e-6 # Epsilon for convergence
+const TOLERANCE = 1e-9 # Epsilon for convergence
 const MAX_ITER = 1000
 
 # --- Key Parameter from Paper ---
 const TAU_BAR = 2.0
 
-const L = sqrt(5)
+const L = 2*sqrt(5) 
 
 # Safe Box K = [K1_MIN, K1_MAX] x [K2_MIN, K2_MAX]
 const K1_MIN, K1_MAX = 0.0, 4.0
@@ -215,7 +215,7 @@ function main()
         mkdir(results_dir)
     end
     
-    output_path = joinpath(results_dir, "Value_function.txt")
+    output_path = joinpath(results_dir, "Value_function_lambda_2_sigma_0.txt")
     writedlm(output_path, Z, ',')
     println("Final value function is saved to: $output_path")
 
@@ -240,7 +240,7 @@ function main()
     percent_lower = (nodes_in_lower_bound / total_nodes) * 100
 
     # --- Write results to a text file ---
-    analysis_path = joinpath(results_dir, "analysis_summary.txt")
+    analysis_path = joinpath(results_dir, "analysis_summary_lambda_2_simga_0.txt")
     open(analysis_path, "w") do f
         write(f, "--- Node Count & Percentage Results ---\n\n")
 
@@ -255,50 +255,5 @@ function main()
     println("Analysis summary saved to: $analysis_path")
 end
 
-<<<<<<< HEAD
 # Run the main function
 main()
-=======
-println("Value iteration converged in $iteration iterations.")
-
-# ---------------------------
-# Plot results
-# ---------------------------
-V_matrix = reshape(V, (length(x1), length(x2)))
-
-#heatmap(
-#    x1, x2, V_matrix',
-#    xlabel="x1 (position)", ylabel="x2 (velocity)",
-#    title="Value Function Heatmap",
-#    colorbar_title="V", c=:viridis
-#)
-
-#surface(
-#    x1, x2, V_matrix',
-#    xlabel="x1", ylabel="x2", zlabel="V",
-#    title="Value Function Surface"
-#)
-
-V = V_matrix .+ 0*L  # Gamma :0.9900498337491681
-
-# === Get absolute path for results folder ===
-script_dir = @__DIR__                  # directory where this script is located
-results_dir = joinpath(script_dir, "results")
-
-# Create folder if it doesn't exist
-if !isdir(results_dir)
-    mkdir(results_dir)
-    println("Created folder: $results_dir")
-end
-
-# === Save value function as CSV ===
-csv_path = joinpath(results_dir, "value_function.csv")
-writedlm(csv_path, V, ',')
-println("Value function saved to: $csv_path")
-
-state_csv_path = joinpath(results_dir, "state_2d.csv")
-writedlm(state_csv_path, state_2d, ',')
-
-
-
->>>>>>> c961578 (Update main.jl file)

@@ -50,7 +50,7 @@ const num_points_action =21
 
 const num_points_state_1=101
 const num_points_state_2=101
-const num_points_state_3=18
+const num_points_state_3=13
 
 
 
@@ -378,7 +378,3 @@ end
 # 6) Run
 ##########################################################
 main_primal()
-
- 
-
-

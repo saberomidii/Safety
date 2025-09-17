@@ -1,0 +1,4 @@
+--- Node Count & Percentage Results ---
+
+Upper Bound (Z>=0): 6065 / 25921 nodes (23.40%)
+Lower Bound (V>=0): 6065 / 25921 nodes (23.40%)

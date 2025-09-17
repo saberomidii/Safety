@@ -31,8 +31,8 @@ const GAMMA = exp(-DISCOUNT_RATE * DT)
 const X1_MIN, X1_MAX = -2.0, 2.0
 const X2_MIN, X2_MAX = -2.0, 2.0
 const X3_MIN, X3_MAX = 0.0, 2π
-const NUM_POINTS_STATE_1 = 101
-const NUM_POINTS_STATE_2 = 101
+const NUM_POINTS_STATE_1 = 75
+const NUM_POINTS_STATE_2 = 75
 const NUM_POINTS_STATE_3 = 18
 
 # Control grid (steering rate)

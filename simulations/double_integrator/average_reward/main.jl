@@ -21,6 +21,7 @@ import MathOptInterface as MIO
 
 using SparseArrays
 using LinearAlgebra 
+
 ##########################################################
 # 1) Setup: parameters, discretization, etc.
 ##########################################################
@@ -134,7 +135,6 @@ for is in 1:nstates
     end
 end
 
-
 println("Negative values check")
 @assert all(t->all(t.>=0.0),T) "Negative Value!"
 
@@ -142,7 +142,6 @@ println("Rows sums are approximately 1!")
 for action in 1:num_points_action
 	@assert all(i -> sum(T[i][action, :]) ≈ 1.0, axes(T, 1)) "Not All row sums are approximately1!"
 end
-
 
 println("Removing small values")
 for s in 1:nstates
@@ -172,14 +171,19 @@ function solve_primal_case()
     # Setup model
     model = Model(Mosek.Optimizer)
    
-    
     # --- CORRECTED TOLERANCE SETTINGS FOR A LINEAR PROGRAM ---
     # Set the tolerance for the interior-point optimizer's relative gap.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-4)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-5)
 
     # You can also set primal and dual feasibility tolerances if needed.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-4)
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-4)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-5)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-5)
+    
+    # Setting this to 0 (MSK_OFF) disables the basis identification procedure.
+    set_optimizer_attribute(model, "MSK_IPAR_INTPNT_BASIS", 0)
+    
+    set_time_limit_sec(model, 15*60)
+
     
     # Define variables: g[s] and h[s] for each state
     @time begin 
