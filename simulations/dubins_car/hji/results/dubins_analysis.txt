@@ -1,4 +1,0 @@
---- Dubins Car Node Count & Percentage Results ---
-
-Upper Bound (Z>=0): 20604 / 183618 nodes (11.22%)
-Lower Bound (V>=0): 3016 / 183618 nodes (1.64%)

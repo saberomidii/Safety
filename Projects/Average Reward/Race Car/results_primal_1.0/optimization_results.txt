@@ -1,3 +1,0 @@
-Optimization run on: 2025-07-31_16-07-37
-Sigma: 1.0
-Objective value (min average reward): 0.33725761772855695
