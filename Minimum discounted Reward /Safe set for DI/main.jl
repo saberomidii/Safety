@@ -239,6 +239,8 @@ end
 
 # Calculate the final Z value from the converged U matrix
 Z = (U .+ L)
+
+cd(@__DIR__)
 writedlm("Z.csv", Z[converged_t,:,:]', ',')
 
 # println("--- Generating Plot ---")

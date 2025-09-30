@@ -33,21 +33,21 @@ const sigma = 1.0
 
 const threshold_for_transit = 0.001
 
-const x_1_min = -0.5
-const x_1_max = 0.5
-const x_2_min = -1.0
-const x_2_max = 1.0
+const x_1_min = -1.0
+const x_1_max = 5.0
+const x_2_min = -5.0
+const x_2_max =  5.0
 
-const u_min = -3.0
-const u_max = 3.0
+const u_min = -2.0
+const u_max = 2.0
 
-const d_min= -0.5
-const d_max=  0.5 
+const d_min= -1.0
+const d_max=  1.0 
 
 
-const num_points_action = 41
+const num_points_action = 81
   
-const num_points_state_1 = 201
+const num_points_state_1 = 121
 const num_points_state_2 = 201
 
 # Number of random samples used when constructing transitions
@@ -78,7 +78,7 @@ println("Number of actions = $nactions")
 
 function is_safe(x::Float64, v::Float64)
     # "Safe" region: x in [0,4], v in [-3,3]
-    return (-0.3 <= x <= 0.3) && (-0.6 <= v <= 0.6)
+    return (0.0 <= x <= 4.0) && ( -3.0 <= v <= 3.0)
 end
 
 # Continuous (noisy) dynamics for double-integrator
@@ -93,12 +93,10 @@ function dynamics_rand(x::Float64, v::Float64, u::Float64)
         while d < d_min || d > d_max
             d = rand(Normal(0, sigma))
         end
+
         dt=0.1
-	m=2.0
-	g=10.0
-	l=1.0
         x1_next = x + v*dt
-	x2_next = v + (g/l*sin(x)+1/m*l^2*u + d)*dt
+	    x2_next = v + (u + d)*dt
         return (x1_next, x2_next)
     end
 end
@@ -140,7 +138,7 @@ for is in 1:nstates
 end
 
 
-println("Negative values check")
+println("Negative values checking")
 @assert all(t->all(t.>=0.0),T) "Negative Value!"
 
 println("Rows sums are approximately 1!")
@@ -177,7 +175,6 @@ function solve_primal_case()
     # Setup model
     model = Model(Mosek.Optimizer)
    
-    
     # --- CORRECTED TOLERANCE SETTINGS FOR A LINEAR PROGRAM ---
     # Set the tolerance for the interior-point optimizer's relative gap.
     set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-4)
@@ -307,7 +304,7 @@ function main_primal()
     
     # Create a timestamped folder for results
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
-    results_dir = joinpath(@__DIR__, "results_primal", string(sigma))
+    results_dir = joinpath(@__DIR__, "results", string(sigma))
     mkpath(results_dir)
     
     println("Saving results to: $results_dir")
@@ -319,38 +316,38 @@ function main_primal()
         println(f, "Objective value (min average reward): $objective")
     end
     
-    # Save g and h vectors
-    writedlm(joinpath(results_dir, "g_vector.csv"), g_opt, ',')
-    writedlm(joinpath(results_dir, "h_vector.csv"), h_opt, ',')
+    # # Save g and h vectors
+    # writedlm(joinpath(results_dir, "g_vector.csv"), g_opt, ',')
+    # writedlm(joinpath(results_dir, "h_vector.csv"), h_opt, ',')
     
     # Save g and h maps
     writedlm(joinpath(results_dir, "G.csv"), g_map, ',')
     writedlm(joinpath(results_dir, "H.csv"), h_map, ',')
     
-    # Save grid data
-    writedlm(joinpath(results_dir, "X_grid.csv"), X, ',')
-    writedlm(joinpath(results_dir, "Y_grid.csv"), Y, ',')
+    # # Save grid data
+    # writedlm(joinpath(results_dir, "X_grid.csv"), X, ',')
+    # writedlm(joinpath(results_dir, "Y_grid.csv"), Y, ',')
     
     # Extract optimal policy (for each state, find action that maximizes the value)
-    optimal_policy = zeros(Int, nstates)
-    for s in 1:nstates
-        max_val = -Inf
-        best_a = 1
+    # optimal_policy = zeros(Int, nstates)
+    # for s in 1:nstates
+    #     max_val = -Inf
+    #     best_a = 1
         
-        for a in 1:nactions
-		val = r[s] + sum(h_opt[s_prime] * T[s][a, s_prime] for s_prime in 1:nstates)
-            if val > max_val
-                max_val = val
-                best_a = a
-            end
-        end
+    #     for a in 1:nactions
+	# 	val = r[s] + sum(h_opt[s_prime] * T[s][a, s_prime] for s_prime in 1:nstates)
+    #         if val > max_val
+    #             max_val = val
+    #             best_a = a
+    #         end
+    #     end
         
-        optimal_policy[s] = best_a
-    end
+    #     optimal_policy[s] = best_a
+    # end
     
     # Save optimal policy
-    policy_map = reshape(optimal_policy, num_points_state_1, num_points_state_2)
-    writedlm(joinpath(results_dir, "optimal_policy.csv"), policy_map, ',')
+    # policy_map = reshape(optimal_policy, num_points_state_1, num_points_state_2)
+    # writedlm(joinpath(results_dir, "optimal_policy.csv"), policy_map, ',')
     
     println("Results saved successfully to: $results_dir")
 end
