@@ -47,8 +47,8 @@ const d_max=  1.0
 
 const num_points_action = 81
   
-const num_points_state_1 = 241
-const num_points_state_2 = 401
+const num_points_state_1 = 2*160 +1
+const num_points_state_2 = 2*160 +1
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
