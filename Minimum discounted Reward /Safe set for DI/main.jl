@@ -36,8 +36,8 @@ const x_2_min, x_2_max = -5.0, 5.0
 const u_min, u_max = -2.0, 2.0
 const d_min, d_max = -1.0, 1.0
 
-const num_points_state_1 = 101
-const num_points_state_2 = 101
+const num_points_state_1 = 241
+const num_points_state_2 = 401
 
 const num_points_action = 81
 
