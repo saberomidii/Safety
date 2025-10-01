@@ -31,7 +31,7 @@ Random.seed!(10) # to reproduce the results.
 # Single noise standard deviation
 const sigma = 1.0
 
-const threshold_for_transit = 0.001
+const threshold_for_transit = 0.00
 
 const x_1_min = -1.0
 const x_1_max = 5.0
@@ -47,8 +47,8 @@ const d_max=  1.0
 
 const num_points_action = 81
   
-const num_points_state_1 = 121
-const num_points_state_2 = 201
+const num_points_state_1 = 241
+const num_points_state_2 = 401
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -177,16 +177,16 @@ function solve_primal_case()
    
     # --- CORRECTED TOLERANCE SETTINGS FOR A LINEAR PROGRAM ---
     # Set the tolerance for the interior-point optimizer's relative gap.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-4)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-8)
 
     # You can also set primal and dual feasibility tolerances if needed.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-4)
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-4)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-8)
+    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-8)
     
     # Setting this to 0 (MSK_OFF) disables the basis identification procedure.
     set_optimizer_attribute(model, "MSK_IPAR_INTPNT_BASIS", 0)
     
-    set_time_limit_sec(model, 60.0)
+    #set_time_limit_sec(model, 60.0)
 
     
     # Define variables: g[s] and h[s] for each state
