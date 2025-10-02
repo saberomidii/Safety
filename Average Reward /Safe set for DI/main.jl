@@ -43,8 +43,8 @@ const u_max = 2.0
 
 const num_points_action = 81
   
-const num_points_state_1 = 2 +160 + 1
-const num_points_state_2 = 2 +160 + 1
+const num_points_state_1 = 321
+const num_points_state_2 = 321
 
 ### Read disturbance
 script_dir = @__DIR__
