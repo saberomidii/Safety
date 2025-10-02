@@ -41,14 +41,18 @@ const x_2_max =  5.0
 const u_min = -2.0
 const u_max = 2.0
 
-const d_min= -1.0
-const d_max=  1.0 
-
-
-const num_points_action = 81
+const num_points_action = 41
   
-const num_points_state_1 = 2*160 +1
-const num_points_state_2 = 2*160 +1
+const num_points_state_1 = 1 +1
+const num_points_state_2 = 1 +1
+
+
+
+### Read disturbance
+script_dir = @__DIR__
+safety_folder_path = joinpath(script_dir, "..", "..")
+csv_filepath = joinpath(safety_folder_path, "Disturbance.csv")
+disturbance_list = readdlm(csv_filepath, ',', Float64)
 
 # Number of random samples used when constructing transitions
 const nsamples = 100
@@ -82,24 +86,17 @@ function is_safe(x::Float64, v::Float64)
 end
 
 # Continuous (noisy) dynamics for double-integrator
-function dynamics_rand(x::Float64, v::Float64, u::Float64)    
+function dynamics_rand(x::Float64, v::Float64, u::Float64, d::Float64)    
     if !is_safe(x, v)
         return (x, v)   # no movement if outside the safe region
     else
-        # make sure d is between d min and d max 
-        d = rand(Normal(0, sigma))
-    
-        # Ensure d is between d_min and d_max
-        while d < d_min || d > d_max
-            d = rand(Normal(0, sigma))
-        end
-
         dt=0.1
         x1_next = x + v*dt
 	    x2_next = v + (u + d)*dt
         return (x1_next, x2_next)
     end
 end
+
 
 # Build a KD-tree for snapping continuous next-states to the nearest discrete state
 states_matrix = hcat([collect(s) for s in states_2d]...)  # shape: 2 x nstates
@@ -118,13 +115,13 @@ end
 for is in 1:nstates
     s = states_2d[is]   # e.g., s = (x, v)
     for a in 1:nactions
-        d = rand(Normal(0, sigma))
         for i in 1:nsamples
             xn = s[1]
             vn = s[2]
             j = 1
             while true	
-                (xn, vn) = dynamics_rand(s[1], s[2], actions[a])
+                random_index=rand(1:nsamples)
+                (xn, vn) = dynamics_rand(s[1], s[2], actions[a],disturbance_list[random_index])
                 # For knn, pass a 2-element Vector, not a Tuple
                 idxs, dists = knn(tree, [xn, vn], 1)
                 if first(idxs) != is || j > 1
