@@ -240,7 +240,7 @@ end
 Z = (U .+ L)
 
 cd(@__DIR__)
-writedlm("Z.csv", Z[converged_t,:,:]', ',')
+writedlm("Z_function.csv", Z[converged_t,:,:]', ',')
 
 # println("--- Generating Plot ---")
 

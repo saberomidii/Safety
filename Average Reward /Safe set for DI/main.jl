@@ -43,8 +43,8 @@ const u_max = 2.0
 
 const num_points_action = 81
   
-const num_points_state_1 = 2 +160 +1
-const num_points_state_2 = 2 +160 +1
+const num_points_state_1 = 2 +160 + 1
+const num_points_state_2 = 2 +160 + 1
 
 ### Read disturbance
 script_dir = @__DIR__
@@ -175,8 +175,8 @@ function solve_primal_case()
     # set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-8)
 
     # You can also set primal and dual feasibility tolerances if needed.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-8)
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-8)
+    # set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-8)
+    # set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_DFEAS", 1e-8)
     
     # Setting this to 0 (MSK_OFF) disables the basis identification procedure.
     set_optimizer_attribute(model, "MSK_IPAR_INTPNT_BASIS", 0)
@@ -255,8 +255,8 @@ function solve_primal_case()
             h_opt = value.(h)
             
             # Check for NaN or Inf values and replace them
-            g_opt = replace(g_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
-            h_opt = replace(h_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
+           # g_opt = replace(g_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
+           # h_opt = replace(h_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
             
             # Round to two decimal places
     #        g_opt = round.(g_opt, digits=2)
@@ -267,10 +267,11 @@ function solve_primal_case()
             h_map = reshape(h_opt, num_points_state_1, num_points_state_2)
             
             # Create grid for visualization
-            X = [x1[i] for i in 1:num_points_state_1, j in 1:num_points_state_2]
-            Y = [x2[j] for i in 1:num_points_state_1, j in 1:num_points_state_2]
+           # X = [x1[i] for i in 1:num_points_state_1, j in 1:num_points_state_2]
+           # Y = [x2[j] for i in 1:num_points_state_1, j in 1:num_points_state_2]
             
-            return objective_value(model), g_opt, h_opt, g_map, h_map, X, Y
+           # return objective_value(model), g_opt, h_opt, g_map, h_map, X, Y
+	    return objective_value(model),g_map,h_map
         else
             println("No optimal solution found. Status = ", stat)
             return nothing, nothing, nothing, nothing, nothing, nothing, nothing
@@ -290,8 +291,9 @@ function main_primal()
     println("*************************************************")
     
     # Call solve_primal_case and capture the returned values
-    objective, g_opt, h_opt, g_map, h_map, X, Y = solve_primal_case()
-    
+    #objective, g_opt, h_opt, g_map, h_map, X,Y = solve_primal_case()
+     objective, g_map, h_map = solve_primal_case()
+
     if isnothing(objective)
         println("Failed to solve the optimization problem.")
         return
