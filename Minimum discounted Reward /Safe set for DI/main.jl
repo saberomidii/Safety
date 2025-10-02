@@ -36,10 +36,10 @@ const x_2_min, x_2_max = -5.0, 5.0
 const u_min, u_max = -2.0, 2.0
 
 
-const num_points_state_1 = 3
-const num_points_state_2 = 3
+const num_points_state_1 = 2*160+1
+const num_points_state_2 = 2*160+1
 
-const num_points_action = 3
+const num_points_action = 81
 
 
 const K1_MIN, K1_MAX = 0.0, 4.0
