@@ -177,7 +177,7 @@ function solve_primal_case()
    
     # --- CORRECTED TOLERANCE SETTINGS FOR A LINEAR PROGRAM ---
     # Set the tolerance for the interior-point optimizer's relative gap.
-    set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-8)
+    # set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_REL_GAP", 1e-8)
 
     # You can also set primal and dual feasibility tolerances if needed.
     set_optimizer_attribute(model, "MSK_DPAR_INTPNT_CO_TOL_PFEAS", 1e-8)
@@ -264,8 +264,8 @@ function solve_primal_case()
             h_opt = replace(h_opt, NaN => 0.0, Inf => 1.0, -Inf => 0.0)
             
             # Round to two decimal places
-            g_opt = round.(g_opt, digits=2)
-            h_opt = round.(h_opt, digits=2)
+    #        g_opt = round.(g_opt, digits=2)
+     #       h_opt = round.(h_opt, digits=2)
             
             # Reshape for visualization
             g_map = reshape(g_opt, num_points_state_1, num_points_state_2)
