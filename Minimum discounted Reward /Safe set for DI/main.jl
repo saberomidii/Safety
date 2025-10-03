@@ -36,8 +36,8 @@ const x_2_min, x_2_max = -5.0, 5.0
 const u_min, u_max = -2.0, 2.0
 
 
-const num_points_state_1 = 2*160+1
-const num_points_state_2 = 2*160+1
+const num_points_state_1 = 321
+const num_points_state_2 = 321
 
 const num_points_action = 81
 
@@ -240,7 +240,7 @@ end
 Z = (U .+ L)
 
 cd(@__DIR__)
-writedlm("Z_function.csv", Z[converged_t,:,:]', ',')
+writedlm("Z.csv", Z[converged_t,:,:]', ',')
 
 # println("--- Generating Plot ---")
 
