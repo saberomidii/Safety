@@ -1,0 +1,27 @@
+Safety Analysis Results
+========================================
+Run Timestamp: 2025-10-03_14-47-08
+System Type: DoubleIntegrator
+
+--- System Details ---
+dt: 0.1
+safe_region: (x_lims = (0.0, 4.0), v_lims = (-3.0, 3.0))
+
+--- Discretization ---
+Number of States: 121
+Number of Actions: 11
+
+--- Disturbance Properties ---
+Distribution Type: Normal
+Distribution Parameters: (mean = 0.0, sigma = 1.0)
+Clamping Bounds: [-1.0, 1.0]
+Samples Generated: 100
+
+--- Transition Matrix ---
+Monte Carlo Samples per (s,a): 100
+
+--- Average Reward (AVR) Results ---
+Objective (min average reward): 0.36363636363636365
+
+--- Minimum Discounted Reward (MDR) Results ---
+Objective (Safe Area Percentage): 36.36%
