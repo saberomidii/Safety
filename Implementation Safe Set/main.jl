@@ -37,9 +37,9 @@ const disturbance_bounds = (-1.0, 1.0)
 const disturbance_nsamples = 100
 
 # -- State and Action Space Configuration --
-const x1_params = (-1.0, 5.0, 161)
-const x2_params = (-5.0, 5.0, 161)
-const u_params  = (-2.0, 2.0, 41)
+const x1_params = (-1.0, 5.0, 11)
+const x2_params = (-5.0, 5.0, 11)
+const u_params  = (-2.0, 2.0, 11)
 
 # -- System Dynamics Configuration (for Double Integrator) --
 const dt = 0.1
