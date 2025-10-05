@@ -1,19 +1,10 @@
 module SaveResults
 
-using Dates
-using DelimitedFiles
-using Printf 
-using ..Systems
-using ..StateSpaces
+using Dates, DelimitedFiles, Printf 
+using ..Systems, ..StateSpaces
 
 export save_analysis_results
 
-"""
-    save_analysis_results(...)
-
-Saves all configuration details, results, maps, and policies to a timestamped
-directory named after the system being analyzed.
-"""
 function save_analysis_results(;
     base_dir::String,
     system::AbstractSystem,
@@ -21,27 +12,25 @@ function save_analysis_results(;
     disturbance_props::NamedTuple,
     tm_nsamples::Int,
     avr_results::Union{NamedTuple, Nothing} = nothing,
-    mdr_results::Union{NamedTuple, Nothing} = nothing
+    mdr_results::Union{NamedTuple, Nothing} = nothing,
+    mdr_params::Union{NamedTuple, Nothing} = nothing
 )
-    # --- 1. Create Directory Structure ---
     system_name = string(nameof(typeof(system)))
     timestamp = Dates.format(now(), "yyyy-mm-dd_HH-MM-SS")
     results_dir = joinpath(base_dir, system_name, timestamp)
     mkpath(results_dir)
     println("\n--- Saving results to: $(results_dir) ---")
 
-    # --- 2. Write Comprehensive Summary File ---
     open(joinpath(results_dir, "summary.txt"), "w") do f
         println(f, "Safety Analysis Results")
         println(f, "========================================")
+        # ... (General info is the same) ...
         println(f, "Run Timestamp: $(timestamp)")
         println(f, "System Type: $(system_name)")
         
         println(f, "\n--- System Details ---")
-        # Correctly iterate through the fields of the system struct
         for field in fieldnames(typeof(system))
-            value = getfield(system, field)
-            println(f, "$(field): $(value)")
+            println(f, "$(field): $(getfield(system, field))")
         end
 
         println(f, "\n--- Discretization ---")
@@ -56,27 +45,25 @@ function save_analysis_results(;
 
         println(f, "\n--- Transition Matrix ---")
         println(f, "Monte Carlo Samples per (s,a): $(tm_nsamples)")
-
-        # --- AVR Results Section ---
+        
         if !isnothing(avr_results)
             println(f, "\n--- Average Reward (AVR) Results ---")
             println(f, "Objective (min average reward): $(avr_results.objective)")
-        else
-            println(f, "\n--- Average Reward (AVR) Results ---")
-            println(f, "AVR solver was not run.")
+            @printf(f, "Percentage of states with g(x) ≈ 1: %.2f%%\n", avr_results.g1_percentage * 100)
         end
 
-        # --- MDR Results Section ---
         if !isnothing(mdr_results)
             println(f, "\n--- Minimum Discounted Reward (MDR) Results ---")
             @printf(f, "Objective (Safe Area Percentage): %.2f%%\n", mdr_results.objective * 100)
-        else
-            println(f, "\n--- Minimum Discounted Reward (MDR) Results ---")
-            println(f, "MDR solver was not run.")
+            if !isnothing(mdr_params)
+                println(f, "\nMDR Parameters:")
+                for (param, value) in pairs(mdr_params)
+                    println(f, "$(param): $(value)")
+                end
+            end
         end
     end
 
-    # --- 3. Save Data Files (CSVs) ---
     if !isnothing(avr_results)
         writedlm(joinpath(results_dir, "G_map_AVR.csv"), avr_results.g_map, ',')
         writedlm(joinpath(results_dir, "H_map_AVR.csv"), avr_results.h_map, ',')
@@ -89,9 +76,7 @@ function save_analysis_results(;
     end
     
     println("All results saved successfully.")
-    return results_dir # <-- ADD THIS RETURN STATEMENT
-
+    return results_dir
 end
-
 
 end # end module

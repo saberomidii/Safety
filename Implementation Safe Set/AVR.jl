@@ -1,15 +1,12 @@
+# AVR.jl
+
 module AVR
 
 using ..Systems, ..StateSpaces
-using JuMP, MosekTools, SparseArrays
+using JuMP, MosekTools, SparseArrays, LinearAlgebra
 
-export calculate_reward_vector, solve_lp, calculate_optimal_policy
+export calculate_reward_vector, solve_lp, calculate_optimal_policy, calculate_g1_percentage
 
-"""
-    calculate_reward_vector(space::StateSpace, system::AbstractSystem)
-
-Generates a reward vector `r` where `r[s] = 1.0` if `s` is safe, and `0.0` otherwise.
-"""
 function calculate_reward_vector(space::StateSpace, system::AbstractSystem)
     r = zeros(Float64, space.n_states)
     for s_idx in 1:space.n_states
@@ -20,12 +17,6 @@ function calculate_reward_vector(space::StateSpace, system::AbstractSystem)
     return r
 end
 
-"""
-    solve_lp(T_SA_S, r, space, alpha_dist)
-
-Solves the primal formulation of the average reward linear program.
-Returns the objective value, g_map, h_map, and the h_opt vector.
-"""
 function solve_lp(
     T_SA_S::SparseMatrixCSC,
     r::Vector{Float64},
@@ -71,12 +62,6 @@ function solve_lp(
     end
 end
 
-"""
-    calculate_optimal_policy(T_SA_S, h_opt, space)
-
-Extracts the optimal policy by finding the action that maximizes the
-expected transient value `h` for each state.
-"""
 function calculate_optimal_policy(
     T_SA_S::SparseMatrixCSC,
     h_opt::Vector{Float64},
@@ -93,7 +78,6 @@ function calculate_optimal_policy(
             row_idx = (s - 1) * space.n_actions + a
             s_primes_indices, _ = findnz(T_SA_S[row_idx, :])
             
-            # Calculate the expected value of h for this state-action pair
             expected_h = isempty(s_primes_indices) ? 0.0 : sum(h_opt[s_prime] * T_SA_S[row_idx, s_prime] for s_prime in s_primes_indices)
             
             if expected_h > max_val
@@ -107,4 +91,16 @@ function calculate_optimal_policy(
     return optimal_policy
 end
 
-end # end module AVR
+"""
+    calculate_g1_percentage(g_map::Matrix{Float64})
+
+Calculates the percentage of the state space where the gain g(x) is approximately 1.
+"""
+function calculate_g1_percentage(g_map::Matrix{Float64})
+    # isapprox is used for robust floating-point comparison
+    g1_count = count(g -> isapprox(g, 1.0), g_map)
+    total_states = length(g_map)
+    return g1_count / total_states
+end
+
+end # end module
