@@ -21,7 +21,6 @@ using .DisturbanceModels, .Systems, .StateSpaces, .TransitionMatrices, .AVR, .Co
 # 1) CONFIGURATION
 # ==========================================================
 Random.seed!(10)
-const SIGMA = 1.0
 const RESULTS_DIR = joinpath(@__DIR__, "results")
 
 # --- Controller Flags ---
@@ -33,13 +32,14 @@ const GENERATE_PLOT = true
 # -- Disturbance Configuration --
 const disturbance_type = "Normal"
 const disturbance_mean = 0.0
+const SIGMA = 1.0 # This is the sigma for the disturbance
 const disturbance_bounds = (-1.0, 1.0)
 const disturbance_nsamples = 100
 
 # -- State and Action Space Configuration --
-const x1_params = (-1.0, 5.0, 11)
-const x2_params = (-5.0, 5.0, 11)
-const u_params  = (-2.0, 2.0, 11)
+const x1_params = (-1.0, 5.0, 51)
+const x2_params = (-5.0, 5.0, 51)
+const u_params  = (-2.0, 2.0, 51)
 
 # -- System Dynamics Configuration (for Double Integrator) --
 const dt = 0.1
@@ -50,29 +50,42 @@ const nsamples = 100
 const threshold = 0.00
 
 # -- MDR Solver Configuration --
-const MDR_LAMBDA = 0.0
-const MDR_DT = 0.1
-const MDR_GAMMA = exp(-MDR_LAMBDA * MDR_DT)
+const MDR_LAMBDA = 0.0; const MDR_DT = 0.1; const MDR_GAMMA = exp(-MDR_LAMBDA * MDR_DT)
 const MDR_L_CONSTANT = sqrt((5.0 - 4.0)^2 + (5.0 - 3.0)^2)
-const MDR_MAX_ITER = 10000
-const MDR_TOLERANCE = 1e-9
+const MDR_MAX_ITER = 10000; const MDR_TOLERANCE = 1e-9
+const mdr_params = (LAMBDA = MDR_LAMBDA, DT = MDR_DT, GAMMA = MDR_GAMMA, L_CONSTANT = MDR_L_CONSTANT, MAX_ITER = MDR_MAX_ITER, TOLERANCE = MDR_TOLERANCE)
 
 # ==========================================================
-# 2) SETUP
+# 2) GENERATE DISTURBANCE
 # ==========================================================
-println("--- 1. Setting up problem ---")
+println("--- 1. Generating Disturbance File ---")
+# --- Create a descriptive filename ---
+disturbance_filename = @sprintf("Disturbance_%s_mu%.1f_sigma%.1f_b[%.1f,%.1f].csv",
+    disturbance_type, disturbance_mean, SIGMA, disturbance_bounds[1], disturbance_bounds[2])
+
+# --- Generate and save the disturbance list ---
+dist_obj = Normal(disturbance_mean, SIGMA)
+# Use the fully qualified name to resolve ambiguity:
+dist_generator = DisturbanceModels.DisturbanceGenerator(dist_obj, disturbance_bounds[1], disturbance_bounds[2])
+const disturbance_list = generate(dist_generator, disturbance_nsamples)
+save_to_csv(disturbance_list, disturbance_filename)
+println("Disturbance list generated and saved to '$(disturbance_filename)'.\n")
+
+# ==========================================================
+# 3) SETUP
+# ==========================================================
+println("--- 2. Setting up problem ---")
 system = DoubleIntegrator(dt, safe_region)
 space = StateSpaces.StateSpace(u_params, x1_params, x2_params)
-disturbance_list = readdlm("Disturbance.csv", ',', Float64)[:]
-println("System, space, and disturbances are ready.")
+println("System and space are ready.")
 
-println("\n--- 2. Building Transition Matrix ---")
+println("\n--- 3. Building Transition Matrix ---")
 T_full = build_transition_matrix(space, system, disturbance_list; nsamples=nsamples)
 T_sparse = apply_threshold(T_full, threshold)
 println("Transition matrix built and sparsified.")
 
 # ==========================================================
-# 3) SOLVE & GATHER RESULTS
+# 4) SOLVE & GATHER RESULTS
 # ==========================================================
 avr_data = nothing
 if RUN_AVR_SOLVER
@@ -82,7 +95,8 @@ if RUN_AVR_SOLVER
     objective, g_map, h_map, h_opt = solve_lp(T_sparse, r, space, alpha_dist)
     if !isnothing(objective)
         policy = calculate_optimal_policy(T_sparse, h_opt, space)
-        avr_data = (objective=objective, g_map=g_map, h_map=h_map, policy=policy)
+        g1_percentage = calculate_g1_percentage(g_map)
+        avr_data = (objective=objective, g_map=g_map, h_map=h_map, policy=policy, g1_percentage=g1_percentage)
         println("AVR solver finished.")
     end
 end
@@ -100,35 +114,22 @@ if RUN_MDR_SOLVER
 end
 
 # ==========================================================
-# 4) SAVE & PLOT RESULTS
+# 5) SAVE & PLOT RESULTS
 # ==========================================================
 results_dir = nothing
 if SAVE_RESULTS
-    disturbance_props = (
-        type=disturbance_type, 
-        params=(mean=disturbance_mean, sigma=SIGMA),
-        bounds=disturbance_bounds, 
-        nsamples=disturbance_nsamples
-    )
-    results_dir = save_analysis_results(
-        base_dir=RESULTS_DIR, system=system, space=space,
+    disturbance_props = (type=disturbance_type, params=(mean=disturbance_mean, sigma=SIGMA),
+        bounds=disturbance_bounds, nsamples=disturbance_nsamples)
+    results_dir = save_analysis_results(base_dir=RESULTS_DIR, system=system, space=space,
         disturbance_props=disturbance_props, tm_nsamples=nsamples,
-        avr_results=avr_data, mdr_results=mdr_data
-    )
+        avr_results=avr_data, mdr_results=mdr_data, mdr_params=mdr_params)
 end
 
 if GENERATE_PLOT && !isnothing(results_dir)
-    disturbance_props_for_plot = (
-        params=(mean=disturbance_mean, sigma=SIGMA),
-        bounds=disturbance_bounds,
-    )
-    generate_and_save_plot(
-        filepath=joinpath(results_dir, "level_set_plot.pdf"),
-        system=system, space=space,
-        x1_params=x1_params, x2_params=x2_params,
-        disturbance_props=disturbance_props_for_plot,
-        avr_results=avr_data, mdr_results=mdr_data
-    )
+    disturbance_props_for_plot = (params=(mean=disturbance_mean, sigma=SIGMA), bounds=disturbance_bounds)
+    generate_and_save_plot(filepath=joinpath(results_dir, "level_set_plot.pdf"),
+        system=system, space=space, x1_params=x1_params, x2_params=x2_params,
+        disturbance_props=disturbance_props_for_plot, avr_results=avr_data, mdr_results=mdr_data)
 end
 
 println("\nProgram finished.")
