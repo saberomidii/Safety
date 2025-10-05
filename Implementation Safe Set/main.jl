@@ -33,7 +33,7 @@ const GENERATE_PLOT = true
 const disturbance_type = "Normal"
 const disturbance_mean = 0.0
 const SIGMA = 1.0 # This is the sigma for the disturbance
-const disturbance_bounds = (-Inf, Inf)
+const disturbance_bounds = (-1, 1)
 const disturbance_nsamples = 100
 
 # -- State and Action Space Configuration --
@@ -54,7 +54,7 @@ const MDR_LAMBDA = 0.2;
 const MDR_DT = 0.1;
 const MDR_GAMMA = exp(-MDR_LAMBDA * MDR_DT)
 const MDR_L_CONSTANT = sqrt((5.0 - 4.0)^2 + (5.0 - 3.0)^2)
-const MDR_MAX_ITER = 10000; const MDR_TOLERANCE = 1e-9
+const MDR_MAX_ITER = 100000; const MDR_TOLERANCE = 1e-9
 const mdr_params = (LAMBDA = MDR_LAMBDA, DT = MDR_DT, GAMMA = MDR_GAMMA, L_CONSTANT = MDR_L_CONSTANT, MAX_ITER = MDR_MAX_ITER, TOLERANCE = MDR_TOLERANCE)
 
 # ==========================================================
