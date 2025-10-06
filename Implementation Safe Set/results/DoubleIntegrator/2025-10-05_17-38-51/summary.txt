@@ -1,0 +1,36 @@
+Safety Analysis Results
+========================================
+Run Timestamp: 2025-10-05_17-38-51
+System Type: DoubleIntegrator
+
+--- System Details ---
+dt: 0.1
+safe_region: (x_lims = (0.0, 4.0), v_lims = (-3.0, 3.0))
+
+--- Discretization ---
+Number of States: 25921
+Number of Actions: 81
+
+--- Disturbance Properties ---
+Distribution Type: Normal
+Distribution Parameters: (mean = 0.0, sigma = 1.0)
+Clamping Bounds: [-Inf, Inf]
+Samples Generated: 100
+
+--- Transition Matrix ---
+Monte Carlo Samples per (s,a): 100
+
+--- Average Reward (AVR) Results ---
+Objective (min average reward): 0.31725024807154045
+Percentage of states with g(x) ≈ 1: 18.31%
+
+--- Minimum Discounted Reward (MDR) Results ---
+Objective (Safe Area Percentage): 36.79%
+
+MDR Parameters:
+LAMBDA: 0.2
+DT: 0.1
+GAMMA: 0.9801986733067553
+L_CONSTANT: 2.23606797749979
+MAX_ITER: 10000
+TOLERANCE: 1.0e-9
