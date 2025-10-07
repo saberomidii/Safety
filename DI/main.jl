@@ -14,13 +14,13 @@ using DelimitedFiles
 # Disturbance 
 Random.seed!(10) # Setting the seed
 μ=0.0
-σ=1.0
+σ=0.0
 nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d =-1.0
-up_d =1.0
+l_d =-0.0
+up_d =0.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
 num_points_state_1 = 161
