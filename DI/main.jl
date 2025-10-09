@@ -23,11 +23,11 @@ l_d =-1.0
 up_d =1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 81
-num_points_state_2 = 81
+num_points_state_1 = 161
+num_points_state_2 = 161
 x1 = collect(LinRange(-1.0, 5.0, num_points_state_1))
 x2 = collect(LinRange(-5.0, 5.0, num_points_state_2))
-u  = collect(LinRange(-2.0, 2.0, 41))
+u  = collect(LinRange(-2.0, 2.0, 81))
 
 const c_min_1 = 0.0
 const c_max_1 = 4.0
@@ -219,8 +219,6 @@ function VI_MDR(λ::Float64)
     dt = 0.1
     γ= exp(-λ*dt)
 
-
-
     L = maximum(abs.([signed_distance_to_box(s[1], s[2], c_min_1, c_max_1, c_min_2, c_max_2) for s in states_2d]))
     h = zeros(Float64, nstates)
     
@@ -330,13 +328,13 @@ Z_map_03,Z_3,U_3,policy_3 = VI_MDR(λ[4])
 # --- Generate the multi-layered plot ---
 
 # Create the initial plot and specify the legend's position
-p = contour(x1, x2, gain, levels=[1.0], color=:black, linewidth=3, label="AVR Safe Set (g=1)", legend=:outertopright)
+#p = contour(x1, x2, gain, levels=[1.0], color=:black, linewidth=3, label="AVR Safe Set (g=1)", legend=:outertopright)
 
 # Add the MDR results using contour!
-contour!(p, x1, x2, Z_map_00, levels=[0.0], color=:red, linestyle=:dash, linewidth=2, label="MDR (λ=0.0)")
-contour!(p, x1, x2, Z_map_01, levels=[0.0], color=:purple, linestyle=:dashdot, linewidth=2, label="MDR (λ=0.01)")
-contour!(p, x1, x2, Z_map_02, levels=[0.0], color=:blue, linestyle=:dot, linewidth=2, label="MDR (λ=0.1)")
-contour!(p, x1, x2, Z_map_03, levels=[0.0], color=:green, linewidth=2, label="MDR (λ=0.2)")
+#contour!(p, x1, x2, Z_map_00, levels=[0.0], color=:red, linestyle=:dash, linewidth=2, label="MDR (λ=0.0)")
+#contour!(p, x1, x2, Z_map_01, levels=[0.0], color=:purple, linestyle=:dashdot, linewidth=2, label="MDR (λ=0.01)")
+#contour!(p, x1, x2, Z_map_02, levels=[0.0], color=:blue, linestyle=:dot, linewidth=2, label="MDR (λ=0.1)")
+#contour!(p, x1, x2, Z_map_03, levels=[0.0], color=:green, linewidth=2, label="MDR (λ=0.2)")
 
 # # Add labels and title
 # xlabel!("Position (x1)")
