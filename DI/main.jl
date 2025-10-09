@@ -14,20 +14,20 @@ using DelimitedFiles
 # Disturbance 
 Random.seed!(10) # Setting the seed
 μ=0.0
-σ=0.0
+σ=1.0
 nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d =-0.0
-up_d =0.0
+l_d =-1.0
+up_d =1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 161
-num_points_state_2 = 161
+num_points_state_1 = 321
+num_points_state_2 = 321
 x1 = collect(LinRange(-1.0, 5.0, num_points_state_1))
 x2 = collect(LinRange(-5.0, 5.0, num_points_state_2))
-u  = collect(LinRange(-2.0, 2.0, 81))
+u  = collect(LinRange(-2.0, 2.0, 161))
 
 const c_min_1 = 0.0
 const c_max_1 = 4.0
