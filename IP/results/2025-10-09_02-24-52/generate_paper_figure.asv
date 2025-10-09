@@ -25,11 +25,11 @@ function generate_paper_figure()
     num_points_x = size(G_average, 2); 
     num_points_v = size(G_average, 1); 
     
-    x_coords = linspace(-1, 5, num_points_x);
-    v_coords = linspace(-5, 5, num_points_v);
+    x_coords = linspace(-0.5, 0.5, num_points_x);
+    v_coords = linspace(-1.0,1.0, num_points_v);
     
-    constraint_x_lim = [0.0, 4.0];
-    constraint_v_lim = [-3.0, 3.0];
+    constraint_x_lim = [-0.3, 0.3];
+    constraint_v_lim = [-0.6, 0.6];
     
     % ###########################################################################
     % ## FIGURE: Safe Set Comparison
@@ -42,12 +42,11 @@ function generate_paper_figure()
     % --- Plot Data ---
     plotConstraintSet(ax, constraint_x_lim, constraint_v_lim);
     
-    epsilon =0.01;
-    contour(ax, x_coords, v_coords, G_average, [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR Safe Set ($g^*(s)=1$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_0, [0.0 0.0], 'LineWidth', 2.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_01, [epsilon, epsilon], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.01$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_1, [epsilon, epsilon], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.015$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_2, [epsilon,epsilon], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.02$)');
+    contour(ax, x_coords, v_coords, G_average, [0.999999, 0.999999], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR Safe Set ($g^*(s)=1$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_0, [0.01 0.01], 'LineWidth', 2.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_01, [0.01, 0.01], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.05$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_1, [0.01, -0.01], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.1$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_2, [0.01, -0.01], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.15$)');
     
     hold(ax, 'off');
     
@@ -83,8 +82,8 @@ function formatAxesAndLabels(ax)
     axis(ax, 'equal');
     
     % UPDATED: Axis limits have been adjusted to "zoom in".
-    xlim(ax, [-0.5, 4.5]);
-    ylim(ax, [-4.75, 3.5]);
+    xlim(ax, [-0.5, 0.5]);
+    ylim(ax, [-1, 0.65]);
     
     % Set font size for the tick labels on both axes
     set(ax, 'FontSize', 16);
