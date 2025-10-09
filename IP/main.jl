@@ -316,7 +316,7 @@ function VI_MDR(λ::Float64)
     return Z_map, Z, U, policy_map
 end
 
-λ= [0.0,0.05,0.1,0.15]
+λ= [0.0,0.1,0.2,0.3]
 dt =0.1
 MDR_MAX_ITERATION =10000
 MDR_MAX_TOLERANCE = 1e-9
