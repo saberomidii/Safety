@@ -1,0 +1,10 @@
+Safety Analysis Results
+Timestamp: stochastic_2025-10-06_23-52-12
+Disturbance Type: stochastic
+Disturbance Params: μ=0.0, σ=0.5, bounds=(-1.0, 1.0)
+
+Grid: 81 x 81
+AVR Safe Set: Contour where g(x) ≈ 1.0
+MDR (λ=0.0) Reachable Set Boundary: Contour where Z(x) ≈ 0.0
+MDR (λ=0.2) Reachable Set Boundary: Contour where Z(x) ≈ 0.0
+MDR (λ=0.1) Reachable Set Boundary: Contour where Z(x) ≈ 0.0

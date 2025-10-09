@@ -1,4 +1,4 @@
-function plot_and_analyze_results()
+function plot_deter()
     clear; clc;
     close all;
     fprintf('Plotting results from Julia simulation...\n');
