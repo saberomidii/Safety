@@ -23,19 +23,11 @@ l_d =-1.0
 up_d =1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-<<<<<<< HEAD
 num_points_state_1 = 81
 num_points_state_2 = 81
 x1 = collect(LinRange(-1.0, 5.0, num_points_state_1))
 x2 = collect(LinRange(-5.0, 5.0, num_points_state_2))
 u  = collect(LinRange(-2.0, 2.0, 41))
-=======
-num_points_state_1 = 321
-num_points_state_2 = 321
-x1 = collect(LinRange(-1.0, 5.0, num_points_state_1))
-x2 = collect(LinRange(-5.0, 5.0, num_points_state_2))
-u  = collect(LinRange(-2.0, 2.0, 161))
->>>>>>> f978c2058c50f8086a737133e466e1663dc0ba64
 
 const c_min_1 = 0.0
 const c_max_1 = 4.0
@@ -66,7 +58,7 @@ end
 # Cartesian product of (x, v) forms the entire state space
 states_2d = [(x, v) for x in x1 for v in x2]
 nstates = length(states_2d)
-threshold_for_transit = 0.1
+threshold_for_transit = 0.0
 # Action discretization
 nactions = length(u)
 
@@ -87,20 +79,11 @@ end
     s = states_2d[is]   # e.g., s = (x, y, theta)
     for a in 1:nactions
         for i in 1:nsamples
-            xn = s[1]
-            vn = s[2]
-            j = 1
-            while true	
-                random_index = rand(1:nsamples)
-                (xn, vn) = di_dynamics(s[1], s[2], u[a], d_list_bounded[random_index])
+                (xn, vn) = di_dynamics(s[1], s[2], u[a], d_list_bounded[i])
                 # For knn, pass a 2-element Vector, not a Tuple
                 idxs, dists = knn(tree, [xn, vn], 1)
-                if first(idxs) != is || j > 1
+                # if first(idxs) != is || j > 1
 		        T[is][ a, first(idxs)] += 1.0 / nsamples
-                   break
-                end
-                j += 1
-            end
         end
     end
  end
@@ -230,28 +213,29 @@ function signed_distance_to_box(x1, x2, c_min_1, c_max_1, c_min_2, c_max_2)
     return dist_outside > 0 ? dist_outside : -min(x1 - c_min_1, c_max_1 - x1, x2 - c_min_2, c_max_2 - x2)
 end
 
-function VI_MDR(λ::Float64) 
+function VI_MDR(λ::Float64)
     max_iteration= 10000
     max_tolerance = 1e-9
     dt = 0.1
-    λ =0.1
-    γ= exp(-λ*dt) 
+    γ= exp(-λ*dt)
+
+
 
     L = maximum(abs.([signed_distance_to_box(s[1], s[2], c_min_1, c_max_1, c_min_2, c_max_2) for s in states_2d]))
-    H = zeros(Float64, nstates)
+    h = zeros(Float64, nstates)
     
     for s_idx in 1:nstates
         s = states_2d[s_idx]
         dist = signed_distance_to_box(s[1], s[2], c_min_1, c_max_1, c_min_2, c_max_2)
         l_val = -dist
         l_bounded = clamp(l_val, -L, L)
-        H[s_idx] = l_bounded - L
+        h[s_idx] = l_bounded - L
     end
 
     println("Terminal cost vector h calculated.")
-    @assert all(H .<= 1e-9) "Positive Value in h!"
+    @assert all(h .<= 1e-9) "Positive Value in h!"
 
-    U = copy(H)
+    U = copy(h)
     U_prev = similar(U)
     mdr_policy = zeros(Int, nstates)
     iteration = 0
@@ -270,17 +254,13 @@ function VI_MDR(λ::Float64)
                 # Use the original T format: a Vector of Sparse Matrices
                 s_primes_indices, _ = findnz(T[s_idx][a_idx, :])
 
-                
-
-                min_val_over_next_states = minimum(U[s_prime] for s_prime in s_primes_indices)
-
-                # # Worst-case logic operating on the 1D U vector
-                # min_val_over_next_states = if isempty(s_primes_indices)
-                #                                 -Inf # No transition possible, worst outcome
-                #                         else
-                # # Find the minimum U value among all possible next states
-                #                                 minimum(U[s_prime] for s_prime in s_primes_indices)
-                #                             end
+                # Worst-case logic operating on the 1D U vector
+                min_val_over_next_states = if isempty(s_primes_indices)
+                                                -Inf # No transition possible, worst outcome
+                                           else
+                # Find the minimum U value among all possible next states
+                                                minimum(U[s_prime] for s_prime in s_primes_indices)
+                                            end
 
                 if min_val_over_next_states > best_val_over_actions
                     best_val_over_actions = min_val_over_next_states
@@ -288,7 +268,7 @@ function VI_MDR(λ::Float64)
                 end
             end
 
-            U[s_idx] = min(H[s_idx], γ * best_val_over_actions)
+            U[s_idx] = min(h[s_idx], γ * best_val_over_actions)
             mdr_policy[s_idx] = best_action_idx
         end
 
@@ -330,13 +310,12 @@ function VI_MDR(λ::Float64)
 
 
     return Z_map, Z, U, policy_map
- end
+end
 
-λ= [0.0,0.1,0.2,0.3]
+λ= [0.0,0.01,0.015,0.02]
 dt =0.1
 MDR_MAX_ITERATION =10000
 MDR_MAX_TOLERANCE = 1e-9
-
 # --- Call the solver for each case ---
 Z_map_00,Z_0,U_0,policy_0 = VI_MDR(λ[1])
 
@@ -359,10 +338,10 @@ contour!(p, x1, x2, Z_map_01, levels=[0.0], color=:purple, linestyle=:dashdot, l
 contour!(p, x1, x2, Z_map_02, levels=[0.0], color=:blue, linestyle=:dot, linewidth=2, label="MDR (λ=0.1)")
 contour!(p, x1, x2, Z_map_03, levels=[0.0], color=:green, linewidth=2, label="MDR (λ=0.2)")
 
-# Add labels and title
-xlabel!("Position (x1)")
-ylabel!("Velocity (x2)")
-title!("AVR Safe Set vs. MDR Reachable Set Boundaries")
+# # Add labels and title
+# xlabel!("Position (x1)")
+# ylabel!("Velocity (x2)")
+# title!("AVR Safe Set vs. MDR Reachable Set Boundaries")
 
 # # Display the plot
 # p

@@ -1,3 +1,0 @@
-Safety Analysis Results for: stochastic disturbance
-Run Timestamp: 2025-10-07_00-07-43
-Dynamics: Unsafe states are absorbing.
