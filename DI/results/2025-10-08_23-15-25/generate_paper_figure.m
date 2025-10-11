@@ -42,12 +42,12 @@ function generate_paper_figure()
     % --- Plot Data ---
     plotConstraintSet(ax, constraint_x_lim, constraint_v_lim);
     
-    epsilon =0.01;
+    epsilon =0.015;
     contour(ax, x_coords, v_coords, G_average, [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR Safe Set ($g^*(s)=1$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_0, [0.0 0.0], 'LineWidth', 2.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_01, [epsilon, epsilon], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.01$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_1, [epsilon, epsilon], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.015$)');
-    contour(ax, x_coords, v_coords, Z_lambda0_2, [epsilon,epsilon], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.02$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_0, [0.0 0.0], 'LineWidth', 3.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_01, [epsilon, epsilon], 'LineWidth', 3, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.01$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_1, [epsilon, epsilon], 'LineWidth', 3, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.015$)');
+    contour(ax, x_coords, v_coords, Z_lambda0_2, [epsilon,epsilon], 'LineWidth', 3, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.02$)');
     
     hold(ax, 'off');
     
