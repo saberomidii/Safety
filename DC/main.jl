@@ -27,8 +27,8 @@ num_points_state_1 = 76
 num_points_state_2 = 76
 num_points_state_3 = 21
 
-x1 = collect(LinRange(-2.0, 2.0, num_points_state_1))
-x2 = collect(LinRange(-2.0, 2.0, num_points_state_2))
+x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
+x2 = collect(LinRange(-0.5, 0.5, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
 u  = collect(LinRange(-1.0, 1.0, 21))
