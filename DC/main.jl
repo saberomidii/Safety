@@ -23,9 +23,9 @@ l_d = -1.0
 up_d = 1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 12
-num_points_state_2 = 12
-num_points_state_3 = 11
+num_points_state_1 = 81
+num_points_state_2 = 81
+num_points_state_3 = 21
 
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
