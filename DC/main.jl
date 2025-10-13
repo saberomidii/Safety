@@ -218,6 +218,10 @@ optimal_policy = zeros(Int, nstates)
 @time optimal_policy = [argmax(r[s] .+ (T[s] * h_opt)) for s in 1:nstates]
 policy= reshape(optimal_policy,num_points_state_1,num_points_state_2,num_points_state_3)
 
+writedlm("optimal_policy_avr.csv",policy,",")
+println("Optimal Policy saved to optimal_policy_avr.csv")
+
+
 println("--- AVR is done")
 
 # MDR 
