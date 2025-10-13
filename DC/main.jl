@@ -23,12 +23,12 @@ l_d = -1.0
 up_d = 1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 76
-num_points_state_2 = 76
-num_points_state_3 = 21
+num_points_state_1 = 12
+num_points_state_2 = 12
+num_points_state_3 = 11
 
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
-x2 = collect(LinRange(-0.5, 0.5, num_points_state_2))
+x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
 u  = collect(LinRange(-1.0, 1.0, 21))
@@ -136,7 +136,6 @@ end
 # LP 
 # Setup model
 model = Model(Mosek.Optimizer)
-
 # TOLERANCE SETTINGS FOR A LINEAR PROGRAM
 # Setting this to 0 (MSK_OFF) disables the basis identification procedure.
 set_optimizer_attribute(model, "MSK_IPAR_INTPNT_BASIS", 0)
@@ -218,9 +217,14 @@ optimal_policy = zeros(Int, nstates)
 @time optimal_policy = [argmax(r[s] .+ (T[s] * h_opt)) for s in 1:nstates]
 policy= reshape(optimal_policy,num_points_state_1,num_points_state_2,num_points_state_3)
 
-writedlm("optimal_policy_avr.csv",policy,",")
-println("Optimal Policy saved to optimal_policy_avr.csv")
 
+sim_dir = joinpath(@__DIR__, "..", "Simulation")
+# 2. Make sure the directory exists (create it if it doesn't)
+mkpath(sim_dir)
+# 3. Define the full path to the file
+policy_path = joinpath(sim_dir, "optimal_policy_avr.csv")
+writedlm(policy_path, policy, ';')
+println("Optimal Policy saved to optimal_policy_avr.csv")
 
 println("--- AVR is done")
 
@@ -443,9 +447,10 @@ writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.0.csv"), Z_map_00, ',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.01.csv"), Z_map_01, ',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.1.csv"), Z_map_02, ',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.2.csv"), Z_map_03, ',')
-writedlm(joinpath(results_dir, "MDR_policy_map_lambda_0.0.csv"), policy_0, ',')
-writedlm(joinpath(results_dir, "MDR_policy_map_lambda_0.01.csv"), policy_1, ',')
-writedlm(joinpath(results_dir, "MDR_policy_map_lambda_0.1.csv"), policy_2, ',')
-writedlm(joinpath(results_dir, "MDR_policy_map_lambda_0.2.csv"), policy_3, ',')
+
+writedlm(joinpath(sim_dir, "MDR_policy_map_lambda_0.0.csv"), policy_0, ',')
+writedlm(joinpath(sim_dir, "MDR_policy_map_lambda_0.01.csv"), policy_1, ',')
+writedlm(joinpath(sim_dir, "MDR_policy_map_lambda_0.1.csv"), policy_2, ',')
+writedlm(joinpath(sim_dir, "MDR_policy_map_lambda_0.2.csv"), policy_3, ',')
 
 println("All result matrices saved to CSV files.")
