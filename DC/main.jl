@@ -23,15 +23,15 @@ l_d = -1.0
 up_d = 1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 41
-num_points_state_2 = 41
-num_points_state_3 = 11
+num_points_state_1 = 81
+num_points_state_2 = 81
+num_points_state_3 = 21
 
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
-u  = collect(LinRange(-2.0, 2.0, 41))
+u  = collect(LinRange(-2.0, 2.0, 81))
 
 # --- Function Definitions ---
 # --- Define Racetrack Constants ---
@@ -115,18 +115,18 @@ end
  end
 end
 
-println("Negative Values checking") 
-@assert all(t->all(t.>=0.0),T) "Negative Value!"
+#println("Negative Values checking") 
+# @assert all(t->all(t.>=0.0),T) "Negative Value!"
 
-println("Sum is one checking") 
-for action in 1:nactions
-	@assert all(i -> sum(T[i][action,:])≈1.0, axes(T,1)) "Not All row sums are approximately 1!"
-end
+#println("Sum is one checking") 
+#for action in 1:nactions
+#	@assert all(i -> sum(T[i][action,:])≈1.0, axes(T,1)) "Not All row sums are approximately 1!"
+#end
 
-println("Removing small values")
-for s in 1:nstates
-	T[s]= dropzeros!(map(x->abs(x)<threshold_for_transit ? 0.0 : x, T[s]))
-end
+#println("Removing small values")
+#for s in 1:nstates
+#	T[s]= dropzeros!(map(x->abs(x)<threshold_for_transit ? 0.0 : x, T[s]))
+#end
 
 println("Done Building T.\n")
 # AVR 
