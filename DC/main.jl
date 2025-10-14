@@ -27,17 +27,17 @@ num_points_state_1 = 81
 num_points_state_2 = 81
 num_points_state_3 = 21
 
-x1 = collect(LinRange(-1.0, 1.0, num_points_state_1))
-x2 = collect(LinRange(-0.5, 0.5, num_points_state_2))
+x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
+x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
-u  = collect(LinRange(-2.0, 2.0, 41))
+u  = collect(LinRange(-2.0, 2.0, 81))
 
-const a_outer = 0.9
-const b_outer = 0.4
+const a_outer = 0.4
+const b_outer = 0.9
 
-const a_inner = 0.6
-const b_inner = 0.2
+const a_inner = 0.2
+const b_inner = 0.6
 
 const x_c = 0.0
 const v_c = 0.0
