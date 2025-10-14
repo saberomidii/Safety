@@ -62,7 +62,7 @@ function di_dynamics(x1::Float64, x2::Float64, x3::Float64, u::Float64, d::Float
         return (x1, x2, x3)   # no movement if outside the safe region
     else
         dt=0.1
-        V=0.05       #Constant Speed 
+        V=1.0       #Constant Speed 
         x1_next = x1 + V*cos(x3)*dt
         x2_next = x2 + V*cos(x3)*dt
         x3_next = x3 + (u+d)*dt
@@ -239,9 +239,6 @@ function signed_distance_to_ellipse_ring(x1::Float64, x2::Float64)
 
     return max(dist_from_outer, -dist_from_inner_hole)
 end
-
-x_range = collect(LinRange(-2.0, 2.0, 101))
-y_range = collect(LinRange(-2.0, 2.0, 101))
 
 function VI_MDR(λ::Float64)
     max_iteration= 10000
