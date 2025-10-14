@@ -23,21 +23,21 @@ l_d = -1.0
 up_d = 1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 81
-num_points_state_2 = 81
-num_points_state_3 = 21
+num_points_state_1 = 41
+num_points_state_2 = 41
+num_points_state_3 = 11
 
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
-u  = collect(LinRange(-2.0, 2.0, 81))
+u  = collect(LinRange(-2.0, 2.0, 41))
 
 # --- Function Definitions ---
 # --- Define Racetrack Constants ---
 const L_straight = 0.9 # Length of the straight sections
-const R_outer = 0.5    # Radius of the outer semicircles
-const R_inner = 0.3    # Radius of the inner semicircles
+const R_outer = 0.4    # Radius of the outer semicircles
+const R_inner = 0.2    # Radius of the inner semicircles
 const xc_left = -L_straight / 2.0  # x-center of the left semicircle
 const xc_right = L_straight / 2.0 # x-center of the right semicircle
 const y_c = 0.0 # y-center is at 0
@@ -239,16 +239,32 @@ println("Optimal Policy saved to optimal_policy_avr.csv")
 println("--- AVR is done")
 
 # MDR 
-function signed_distance_to_ellipse_ring(x1::Float64, x2::Float64)
-    # Level set value for the outer ellipse.
-    # This is < 0 inside, > 0 outside.
-    dist_from_outer = ((x1 - x_c)^2) / a_outer^2 + ((x2 - v_c)^2) / b_outer^2 - 1.0
+# ==============================================================================
+# 2. SIGNED DISTANCE FUNCTION DEFINITIONS
+# ==============================================================================
+# This robust version produces a correct horizontal track with straight contour lines.
+function signed_distance_to_racetrack(x::Float64, y::Float64, R::Float64)
+    x_clamped = clamp(x, xc_left, xc_right)
+    distance_to_axis = sqrt((x - x_clamped)^2 + (y - y_c)^2)
+    return distance_to_axis - R
+end
 
-    dist_from_inner_hole = ((x1 - x_c)^2) / a_inner^2 + ((x2 - v_c)^2) / b_inner^2 - 1.0
-
-
+function signed_distance_to_racetrack_ring(x::Float64, y::Float64)
+    dist_from_outer = signed_distance_to_racetrack(x, y, R_outer)
+    dist_from_inner_hole = signed_distance_to_racetrack(x, y, R_inner)
     return max(dist_from_outer, -dist_from_inner_hole)
 end
+
+# function signed_distance_to_ellipse_ring(x1::Float64, x2::Float64)
+#     # Level set value for the outer ellipse.
+#     # This is < 0 inside, > 0 outside.
+#     dist_from_outer = ((x1 - x_c)^2) / a_outer^2 + ((x2 - v_c)^2) / b_outer^2 - 1.0
+
+#     dist_from_inner_hole = ((x1 - x_c)^2) / a_inner^2 + ((x2 - v_c)^2) / b_inner^2 - 1.0
+
+
+#     return max(dist_from_outer, -dist_from_inner_hole)
+# end
 
 function VI_MDR(λ::Float64)
     max_iteration= 10000
@@ -256,12 +272,12 @@ function VI_MDR(λ::Float64)
     dt = 0.1
     γ= exp(-λ*dt)
 
-    L = maximum(abs.([signed_distance_to_ellipse_ring(s[1], s[2]) for s in states_3d]))
+    L = maximum(abs.([signed_distance_to_racetrack_ring(s[1], s[2]) for s in states_3d]))
     h = zeros(Float64, nstates)
     
     for s_idx in 1:nstates
         s = states_3d[s_idx]
-        dist = signed_distance_to_ellipse_ring(s[1], s[2])
+        dist = signed_distance_to_racetrack_ring(s[1], s[2])
         l_val = -dist
         l_bounded = clamp(l_val, -L, L)
         h[s_idx] = l_bounded - L
@@ -409,8 +425,8 @@ open(summary_filepath, "w") do f
 
     println(f, "\n--- System Details ---")
     println(f, "dt: ", dt)
-    println(f, "safe_region: (x_lims = ($a_outer, $b_outer), v_lims = ($a_inner, $b_inner))")
-
+    println(f, "safe_region: Racetrack (L_straight=$(L_straight), R_outer=$(R_outer), R_inner=$(R_inner))")
+    
     println(f, "\n--- Discretization ---")
     println(f, "Number of States: ", nstates)
     println(f, "Number of Actions: ", nactions)
