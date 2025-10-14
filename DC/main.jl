@@ -23,35 +23,45 @@ l_d = -1.0
 up_d = 1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 81
-num_points_state_2 = 81
-num_points_state_3 = 21
+num_points_state_1 = 41
+num_points_state_2 = 41
+num_points_state_3 = 11
 
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
-u  = collect(LinRange(-2.0, 2.0, 81))
+u  = collect(LinRange(-2.0, 2.0, 41))
 
-const a_outer = 0.4
-const b_outer = 0.9
+# --- Function Definitions ---
+# --- Define Racetrack Constants ---
+const L_straight = 0.9 # Length of the straight sections
+const R_outer = 0.5    # Radius of the outer semicircles
+const R_inner = 0.3    # Radius of the inner semicircles
+const xc_left = -L_straight / 2.0  # x-center of the left semicircle
+const xc_right = L_straight / 2.0 # x-center of the right semicircle
+const y_c = 0.0 # y-center is at 0
 
-const a_inner = 0.2
-const b_inner = 0.6
 
-const x_c = 0.0
-const v_c = 0.0
 
-function is_safe(x::Float64, v::Float64)
-    # Center of both ellipses
-    
-    # Check if point is inside the larger ellipse
-    inside_outer = ((x - x_c)^2) / a_outer^2 + ((v - v_c)^2) / b_outer^2 <= 1
+# Helper function to check if a point is inside a single racetrack shape
+function is_inside_racetrack(x::Float64, y::Float64, R::Float64)
+    # Check straight sections
+    if x >= xc_left && x <= xc_right
+        return abs(y - y_c) <= R
+    # Check left semicircle
+    elseif x < xc_left
+        return (x - xc_left)^2 + (y - y_c)^2 <= R^2
+    # Check right semicircle
+    else # x > xc_right
+        return (x - xc_right)^2 + (y - y_c)^2 <= R^2
+    end
+end
 
-    # Check if point is inside the smaller ellipse
-    inside_inner = ((x - x_c)^2) / a_inner^2 + ((v - v_c)^2) / b_inner^2 <= 1
-
-    # Safe set is the ring: inside the outer, but outside the inner
+# Checks if a point (x, y) is in the safe region between two racetrack shapes
+function is_safe(x::Float64, y::Float64)
+    inside_outer = is_inside_racetrack(x, y, R_outer)
+    inside_inner = is_inside_racetrack(x, y, R_inner)
     return inside_outer && !inside_inner
 end
 

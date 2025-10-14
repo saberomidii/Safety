@@ -1,152 +1,148 @@
-using Random, Distributions
+using Random
+using Distributions
 using NearestNeighbors
 using Plots
-using DelimitedFiles # Added this as it was missing
+using DelimitedFiles
 
-# --- Setup: Automatically create a dummy policy file for this example ---
-# This ensures the script is self-contained and runnable.
-const NUM_STATES_TOTAL = 76 * 76 * 21
-const NUM_ACTIONS = 21
+# --- Setup: Ensure a dummy policy file exists ---
+function create_dummy_policy_file(filename, num_states, num_actions)
+    if !isfile(filename)
+        println("Creating dummy policy file: $filename")
+        dummy_policy = [round(Int, num_actions / 2) for _ in 1:num_states]
+        writedlm(filename, dummy_policy, ';')
+    end
+end
+
+const NUM_STATES_TOTAL = 81 * 81 * 21
+const NUM_ACTIONS = 81
+create_dummy_policy_file("optimal_policy_avr.csv", NUM_STATES_TOTAL, NUM_ACTIONS)
 # -----------------------------------------------------------------------
 
-Random.seed!(10) # Setting the seed
-cd(@__DIR__)
-# Load the optimal policy.
-policy_average = readdlm("optimal_policy_avr.csv", ';')
-policy_MDR = readdlm("MDR_policy_map_lambda_0.0.csv", ';')
+Random.seed!(10) # For reproducible results
+cd(@__DIR__) # Set working directory to the script's location
 
-# --- Define Constants FIRST ---
-# These must be defined before they are used in the functions below.
+println("Loading policy and setting up state space...")
+const policy_average = readdlm("optimal_policy_avr.csv", ';')
+
+# --- Define Constants ---
 const a_outer = 0.4
 const b_outer = 0.9
 const a_inner = 0.2
-const b_inner = 0.70
-const x_c = 0.0
-const v_c = 0.0 # This corresponds to the y-center for plotting
+const b_inner = 0.6
+const x_c = 0.0 # x-center of ellipses
+const y_c = 0.0 # y-center of ellipses
 
 # --- Function Definitions ---
-# Checks if the point (x, y) is within the safe ring.
-function is_safe(x::Float64, y::Float64)
-    inside_outer = ((x - x_c)^2) / a_outer^2 + ((y - v_c)^2) / b_outer^2 <= 1
-    inside_inner = ((x - x_c)^2) / a_inner^2 + ((y - v_c)^2) / b_inner^2 <= 1
+
+# Checks if a point (x, y) is in the safe region between two ellipses
+function is_point_safe(x::Float64, y::Float64)
+    inside_outer = ((x - x_c)^2) / a_outer^2 + ((y - y_c)^2) / b_outer^2 <= 1
+    inside_inner = ((x - x_c)^2) / a_inner^2 + ((y - y_c)^2) / b_inner^2 <= 1
     return inside_outer && !inside_inner
 end
 
-# Continuous (noisy) dynamics for the Dubins car.
+# Calculates the next state based on dynamics
 function di_dynamics(x1::Float64, x2::Float64, x3::Float64, u::Float64, d::Float64)
-# if !is_safe(x1, x2)
-#     return (x1, x2, x3) # No movement if outside the safe region
-# else
     dt = 0.1
-    V = 0.1 # Constant Speed
+    V =0.5 # Constant Speed
     x1_next = x1 + V * cos(x3) * dt
-    # CORRECTED: The y-component (x2) must use sin(theta).
     x2_next = x2 + V * sin(x3) * dt
     x3_next = x3 + (u + d) * dt
     return (x1_next, x2_next, x3_next)
 end
 
 # --- State Space Discretization ---
-const num_points_state_1 = 76
-const num_points_state_2 = 76
-const num_points_state_3 = 21
-const x1_range = collect(LinRange(-0.5, 0.5, num_points_state_1))
-const x2_range = collect(LinRange(-0.5, 0.5, num_points_state_2))
-const x3_range = collect(LinRange(0, 2π, num_points_state_3))
+println("Discretizing state space and building KD-Tree...")
+const x1_range = LinRange(-1.0, 1.0, 81)
+const x2_range = LinRange(-0.5, 0.5, 81)
+const x3_range = LinRange(0, 2π, 21)
 
-const states_3d = [(x, v, theta) for x in x1_range for v in x2_range for theta in x3_range]
-const nstates = length(states_3d)
-const states_matrix = hcat([collect(s) for s in states_3d]...)
+const states_3d = [(x, y, θ) for x in x1_range for y in x2_range for θ in x3_range]
+const states_matrix = hcat(collect.(states_3d)...)
 const tree = KDTree(states_matrix)
 
-# --- Simulation ---
-const sim_time = 200 # Increased for a more visible trajectory
+# --- Simulation Parameters ---
 const μ = 0.0
 const σ = 1.0
-const low = -1.0
-const up = 1.0
-const u = collect(LinRange(-1.0, 1.0, NUM_ACTIONS))
+const disturbance_distribution = Truncated(Normal(μ, σ), -1.0, 1.0)
+const u_actions = LinRange(-1.0, 1.0, NUM_ACTIONS)
+const max_sim_time = 100# Set a reasonable maximum to prevent infinite loops
 
-# Initial state
-xn = 0.25
-yn = 0.25 # Renamed from 'vn' for clarity in X-Y plot
-thetan = 0.5
-
-# Store history as vectors
-X = zeros(sim_time)
-Y = zeros(sim_time)
-Theta = zeros(sim_time)
-
-println("Running simulation...")
-for time_index = 1:sim_time
-    # Find the nearest discrete state
-    idxs, _ = knn(tree, [xn, yn, thetan], 1)
+# --- Simplified Simulation Function ---
+function run_simulation(x_start::Float64, y_start::Float64, theta_start::Float64)
+    # Use dynamically sized vectors for the trajectory
+    X_traj, Y_traj = Float64[], Float64[]
+    xn, yn, thetan = x_start, y_start, theta_start
     
-    # Get the policy for that state
-    policy_index = policy_average[idxs[1]]
-    policy_index = policy_MDR[idxs[1]]
+    # Loop until the agent is unsafe or max time is reached
+    for _ in 1:max_sim_time
+        # !is_point_safe(xn, yn) && break # Exit if unsafe
 
-    policy_index = round(Int64, policy_index)
+        push!(X_traj, xn)
+        push!(Y_traj, yn)
+        
+        # Find the closest state in our grid to get the policy action
+        idxs, _ = knn(tree, [xn, yn, thetan], 1)
+        policy_index = round(Int, policy_average[idxs[1]])
+        
+        # Apply action with random disturbance
+        disturbance = rand(disturbance_distribution)
+        (xn, yn, thetan) = di_dynamics(xn, yn, thetan, u_actions[policy_index], disturbance)
+    end
     
-    # Generate a random disturbance
-    disturbance = rand(Truncated(Normal(μ, σ), low, up))
-    
-    # FIXED: Use `global` to modify variables outside the loop's scope
-    global (xn, yn, thetan) = di_dynamics(xn, yn, thetan, u[policy_index], disturbance)
-    
-    # Store the results
-    X[time_index] = xn
-    Y[time_index] = yn
-    Theta[time_index] = thetan
-end
-println("Simulation finished.")
-
-# --- Plotting ---
-# Helper function to generate points for an ellipse
-function generate_ellipse_points(a, b, xc=0.0, yc=0.0; n_points=100)
-    t = range(0, 2π, length=n_points)
-    x_points = xc .+ a .* cos.(t)
-    y_points = yc .+ b .* sin.(t)
-    return x_points, y_points
+    return X_traj, Y_traj
 end
 
-# Generate points for both ellipses
-outer_ellipse_x, outer_ellipse_y = generate_ellipse_points(a_outer, b_outer, x_c, v_c)
-inner_ellipse_x, inner_ellipse_y = generate_ellipse_points(a_inner, b_inner, x_c, v_c)
+# --- Main Execution ---
+println("\n--- Running a single simulation from a random initial state ---")
 
-# Create the plot
-plot(X, Y,
-    label="Dubins Car Trajectory",
+
+p = plot(
+    title="Agent Trajectory",
     xlabel="x position",
     ylabel="y position",
-    title="Dubins Car Simulation with Safe Set",
-    legend=:topright,
-    linewidth=2,
-    aspect_ratio=:equal, # Ensures ellipses are not distorted
+    legend=:outertopright,
+    aspect_ratio=:equal,
     framestyle=:box
 )
 
-# Add the outer ellipse and shade the safe area
-plot!(outer_ellipse_x, outer_ellipse_y,
-    label="Safe Set Boundary",
-    seriestype=:shape, # Use shape to fill
-    fillcolor=:green,
-    fillalpha=0.2, # Transparent fill
-    linecolor=:gray,
-    linestyle=:dash
-)
+# --- Plotting ---
+function generate_ellipse_points(a, b; xc=0.0, yc=0.0, n_points=100)
+    t = range(0, 2π, length=n_points)
+    return xc .+ a .* cos.(t), yc .+ b .* sin.(t)
+end
 
-# Add the inner ellipse and "punch a hole" in the fill
-plot!(inner_ellipse_x, inner_ellipse_y,
-    label="Unsafe Inner Region",
-    seriestype=:shape,
-    fillcolor=:white, # Fill with background color
-    fillalpha=1.0,
-    linecolor=:red
-)
+outer_ellipse_x, outer_ellipse_y = generate_ellipse_points(a_outer, b_outer)
+inner_ellipse_x, inner_ellipse_y = generate_ellipse_points(a_inner, b_inner)
 
-# Mark the start point
-scatter!([X[1]], [Y[1]], label="Start Point", color=:blue, markersize=5)
 
-println("Displaying plot...")
-display(current()) # Show the plot
+
+# Plot safe and unsafe regions
+plot!(p, outer_ellipse_x, outer_ellipse_y, seriestype=:shape, c=:gray, alpha=0.2, label="Safe Region")
+plot!(p, inner_ellipse_x, inner_ellipse_y, seriestype=:shape, c=:white, alpha=1.0, lc=:red, label="Unsafe Region")
+
+# # 2. Run the simulation from that state
+# for x_index in x1_range
+#     for y_index in x2_range
+#         for theta_index in x3_range
+#             if is_point_safe(x_index,y_index)
+#                 X_traj, Y_traj = run_simulation(x_index, y_index, theta_index)
+
+#                 if  all(is_point_safe.(X_traj, Y_traj))
+#                     println("the trajectory is safe and the initial state is",[x_index,y_index,theta_index])
+#                     plot!(p, X_traj, Y_traj, lw=2, color=:blue, legend=false)
+#                     display(p) 
+#                 end 
+#             else 
+#                 nothing
+#             end
+
+# end 
+#      end
+#         end
+
+for theta_index in x3_range
+    X_traj, Y_traj = run_simulation(0.2, 0.7,theta_index)
+    plot!(p, X_traj, Y_traj, lw=2, color=:blue, legend=false)
+    display(p) 
+end
