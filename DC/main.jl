@@ -27,8 +27,8 @@ num_points_state_1 = 81
 num_points_state_2 = 81
 num_points_state_3 = 21
 
-x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
-x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
+x1 = collect(LinRange(-1.0, 1.0, num_points_state_1))
+x2 = collect(LinRange(-0.5, 0.5, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
 u  = collect(LinRange(-2.0, 2.0, 81))
@@ -72,9 +72,9 @@ function di_dynamics(x1::Float64, x2::Float64, x3::Float64, u::Float64, d::Float
         return (x1, x2, x3)   # no movement if outside the safe region
     else
         dt=0.1
-        V=1.0       #Constant Speed 
+        V=0.5       #Constant Speed 
         x1_next = x1 + V*cos(x3)*dt
-        x2_next = x2 + V*cos(x3)*dt
+        x2_next = x2 + V*sin(x3)*dt
         x3_next = x3 + (u+d)*dt
         return (x1_next, x2_next, x3_next)
     end
