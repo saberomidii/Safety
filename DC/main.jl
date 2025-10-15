@@ -18,13 +18,13 @@ nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d = -2.0
-up_d = 2.0
+l_d = -1.5
+up_d = 1.5
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
 num_points_state_1 = 101
 num_points_state_2 = 61
-num_points_state_3 = 15
+num_points_state_3 = 21
 
 x1 = collect(LinRange(-5.0, 5.0, num_points_state_1))
 x2 = collect(LinRange(-3.0, 3.0, num_points_state_2))
