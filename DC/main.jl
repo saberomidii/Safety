@@ -8,7 +8,6 @@ import MathOptInterface as MOI
 using MosekTools  
 
 using Plots
-
 using Dates
 using DelimitedFiles
 # Disturbance 
@@ -19,30 +18,28 @@ nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d = -1.0
-up_d = 1.0
+l_d = -2.0
+up_d = 2.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 81
-num_points_state_2 = 81
-num_points_state_3 = 21
+num_points_state_1 = 101
+num_points_state_2 = 61
+num_points_state_3 = 15
 
-x1 = collect(LinRange(-1.0, 1.0, num_points_state_1))
-x2 = collect(LinRange(-0.5, 0.5, num_points_state_2))
+x1 = collect(LinRange(-5.0, 5.0, num_points_state_1))
+x2 = collect(LinRange(-3.0, 3.0, num_points_state_2))
 x3 = collect(LinRange(0, 2π, num_points_state_3))
 
-u  = collect(LinRange(-2.0, 2.0, 81))
+u  = collect(LinRange(-2.0, 2.0, 21))
 
 # --- Function Definitions ---
 # --- Define Racetrack Constants ---
-const L_straight = 0.9 # Length of the straight sections
-const R_outer = 0.4    # Radius of the outer semicircles
-const R_inner = 0.2    # Radius of the inner semicircles
+const L_straight = 4.0 # Length of the straight sections
+const R_outer = 3.0    # Radius of the outer semicircles
+const R_inner = 0.0    # Radius of the inner semicircles
 const xc_left = -L_straight / 2.0  # x-center of the left semicircle
 const xc_right = L_straight / 2.0 # x-center of the right semicircle
 const y_c = 0.0 # y-center is at 0
-
-
 
 # Helper function to check if a point is inside a single racetrack shape
 function is_inside_racetrack(x::Float64, y::Float64, R::Float64)
@@ -71,8 +68,8 @@ function di_dynamics(x1::Float64, x2::Float64, x3::Float64, u::Float64, d::Float
     if !is_safe(x1, x2)
         return (x1, x2, x3)   # no movement if outside the safe region
     else
-        dt=0.1
-        V=0.5       #Constant Speed 
+        dt=0.2
+        V=0.25       #Constant Speed 
         x1_next = x1 + V*cos(x3)*dt
         x2_next = x2 + V*sin(x3)*dt
         x3_next = x3 + (u+d)*dt
@@ -115,27 +112,76 @@ end
  end
 end
 
-#println("Negative Values checking") 
+# println("Negative Values checking") 
 # @assert all(t->all(t.>=0.0),T) "Negative Value!"
 
-#println("Sum is one checking") 
-#for action in 1:nactions
-#	@assert all(i -> sum(T[i][action,:])≈1.0, axes(T,1)) "Not All row sums are approximately 1!"
-#end
+# println("Sum is one checking") 
+# for action in 1:nactions
+# 	@assert all(i -> sum(T[i][action,:])≈1.0, axes(T,1)) "Not All row sums are approximately 1!"
+# end
 
-#println("Removing small values")
-#for s in 1:nstates
-#	T[s]= dropzeros!(map(x->abs(x)<threshold_for_transit ? 0.0 : x, T[s]))
-#end
+# println("Removing small values")
+# for s in 1:nstates
+# 	T[s]= dropzeros!(map(x->abs(x)<threshold_for_transit ? 0.0 : x, T[s]))
+# end
 
 println("Done Building T.\n")
 # AVR 
+# AVR
+# ==============================================================================
+# # --- NEW SHAPED REWARD FUNCTION ---
+# # ==============================================================================
+# function calculate_shaped_reward(s::Tuple{Float64, Float64, Float64})
+#     x, y, θ = s
+
+#     # 1. Large penalty for being in an unsafe state (terminal cost)
+#     if !is_safe(x, y)
+#         return -100.0
+#     end
+
+#     # 2. Base reward for being safe + incentive for making progress
+#     base_reward = 1.0
+#     progress_weight = 2.0 # How much we value progress vs. just being safe
+
+#     # --- Determine ideal direction of travel (counter-clockwise tangent) ---
+#     ideal_tangent_x, ideal_tangent_y = 0.0, 0.0
+#     if x > xc_right # Right semicircle
+#         angle_from_center = atan(y - y_c, x - xc_right)
+#         ideal_tangent_x = -sin(angle_from_center)
+#         ideal_tangent_y = cos(angle_from_center)
+#     elseif x < xc_left # Left semicircle
+#         angle_from_center = atan(y - y_c, x - xc_left)
+#         ideal_tangent_x = -sin(angle_from_center)
+#         ideal_tangent_y = cos(angle_from_center)
+#     else # Straight sections
+#         ideal_tangent_x = (y > y_c) ? -1.0 : 1.0 # Top: move left, Bottom: move right
+#         ideal_tangent_y = 0.0
+#     end
+
+#     # --- Calculate progress as the alignment with the ideal direction ---
+#     velocity_dir_x = cos(θ)
+#     velocity_dir_y = sin(θ)
+#     # Dot product measures alignment: > 0 for correct direction, < 0 for wrong direction
+#     progress = (velocity_dir_x * ideal_tangent_x) + (velocity_dir_y * ideal_tangent_y)
+
+#     # The total reward encourages both safety and progress
+#     return base_reward + progress_weight * progress
+# end
+
+
+# # Initialize reward vector for all states using the new function
+# println("Calculating shaped reward for all states...")
+# r = zeros(nstates)
+# for s in 1:nstates
+#     r[s] = calculate_shaped_reward(states_3d[s])
+# end
+# println("Reward calculation complete.")
 # Initialize reward vector for all states
 # +1 if in safe region, else 0
+
 function reward(s::Tuple{Float64, Float64, Float64})
     return is_safe(s[1], s[2]) ? 1.0 : 0.0
 end
-
 
 # Initialize reward vector for all states
 r = zeros(nstates)
