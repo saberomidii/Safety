@@ -3,47 +3,80 @@ clear; clc; close all;
 
 % --- Load Data ---
 fprintf("Loading data from 'figure_data' directory...\n");
-data_dir = 'figure_data';
 
-trajectory   = readmatrix(fullfile(data_dir, 'trajectory.csv'));
-control_input= readmatrix(fullfile(data_dir, 'control_input.csv'));
-outer_track  = readmatrix(fullfile(data_dir, 'outer_track.csv'));
-inner_track  = readmatrix(fullfile(data_dir, 'inner_track.csv'));
-start_point  = readmatrix(fullfile(data_dir, 'start_point.csv'));
-longest_time = readmatrix(fullfile(data_dir, 'longest_time.txt'));
+
+
+trajectory_1   = readmatrix(fullfile('trajectory_1.csv'));
+trajectory_2   = readmatrix(fullfile('trajectory_2.csv'));
+trajectory_3   = readmatrix(fullfile('trajectory_3.csv'));
+trajectory_4   = readmatrix(fullfile('trajectory_4.csv'));
+outer_track    = readmatrix(fullfile('outer_track.csv'));
+inner_track    = readmatrix(fullfile('inner_track.csv'));
 
 % Extract data into variables for clarity
-best_X_traj = trajectory(:, 1);
-best_Y_traj = trajectory(:, 2);
-best_x = start_point(1);
-best_y = start_point(2);
+X_1 = trajectory_1(:, 1);
+Y_1 = trajectory_1(:, 2);
+X_2 = trajectory_2(:, 1);
+Y_2 = trajectory_2(:, 2);
+X_3 = trajectory_3(:, 1);
+Y_3 = trajectory_3(:, 2);
+X_4 = trajectory_4(:, 1);
+Y_4 = trajectory_4(:, 2);
 
-% --- Plot 1: Trajectory with new style ---
+
+
+% --- Plot: Trajectories with new style ---
 fprintf("Generating trajectory plot with updated style...\n");
 fig1 = figure('Position', [100, 100, 800, 600], 'Color', 'w'); % Set figure background to white
 hold on;
 
-% Plot the constraint set boundary as a solid black line
-plot(outer_track(:,1), outer_track(:,2), 'k-', 'LineWidth', 2);
+% Plot the track boundaries (constraint set)
+% We only need one legend entry for the track, so we use 'HandleVisibility','off' for the second part
+p_track = plot(outer_track(:,1), outer_track(:,2), 'k-', 'LineWidth', 2);
 if ~isempty(inner_track)
-    plot(inner_track(:,1), inner_track(:,2), 'k-', 'LineWidth', 2);
+    plot(inner_track(:,1), inner_track(:,2), 'k-', 'LineWidth', 2, 'HandleVisibility','off');
 end
 
-% Plot the trajectory (blue), start point (green), and end point (black star)
-plot(best_X_traj, best_Y_traj, 'b-', 'LineWidth', 2.5);
-scatter(best_x, best_y, 200, 'g', 'filled');
-scatter(best_X_traj(end), best_Y_traj(end), 200, 'red', '^','filled');
+% Plot the trajectories
+p1 = plot(X_1, Y_1, '-', 'Color', [0, 0.4470, 0.7410], 'LineWidth', 2.5); % Blue
+p2 = plot(X_2, Y_2, '-', 'Color', [0.4660, 0.6740, 0.1880], 'LineWidth', 2.5); % Green
+p3 = plot(X_3, Y_3, '-', 'Color', [0.6350, 0.0780, 0.1840], 'LineWidth', 2.5); % Red/Maroon
+p4 = plot(X_4, Y_4, '-', 'Color', [0.6350, 0.4660, 0.1840], 'LineWidth', 2.5); % Red/Maroon
 
-% Setup plot with LaTeX interpreter and updated terminology
-% title(sprintf('AVR Policy (Time: %d steps)', longest_time), 'Interpreter', 'latex', 'FontSize', 20);
-xlabel(' $\mathrm{X}$(meter)', 'Interpreter', 'latex', 'FontSize', 18);
-ylabel(' $\mathrm{Y}$(meter)', 'Interpreter', 'latex', 'FontSize', 18);
-legend({'Constraint Set', 'AVR Policy', 'Start Point', 'End Point'}, 'Interpreter', 'latex', 'Location', 'northeast');
-axis equal;
-box on;
+% Plot start points (black triangles)
+% Only create a legend entry for the first one to avoid clutter
+p_start = scatter(X_1(1), Y_1(1), 150, 'k^', 'filled', 'LineWidth', 1.5);
+scatter(X_2(1), Y_2(1), 150, 'k^', 'filled', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+scatter(X_3(1), Y_3(1), 150, 'k^', 'filled', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+scatter(X_4(1), Y_4(1), 150, 'k^', 'filled', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+
+% Plot end points (red stars)
+% Only create a legend entry for the first one
+p_end = scatter(X_1(end), Y_1(end), 250, 'p', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.8500, 0.3250, 0.0980], 'LineWidth', 1.5); % Orange pentagram
+scatter(X_2(end), Y_2(end), 250, 'p', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.8500, 0.3250, 0.0980], 'LineWidth', 1.5, 'HandleVisibility', 'off');
+scatter(X_3(end), Y_3(end), 250, 'p', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.8500, 0.3250, 0.0980], 'LineWidth', 1.5, 'HandleVisibility', 'off');
+scatter(X_4(end), Y_4(end), 250, 'p', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.8500, 0.3250, 0.0980], 'LineWidth', 1.5, 'HandleVisibility', 'off');
+
+% --- Setup plot with LaTeX interpreter and updated terminology ---
+xlim([-3, 3]);
+ylim([-1.75, 1.75]);
 grid on;
+grid minor;
+box on;
+axis equal; % Ensure aspect ratio is correct
+
+xlabel('$\mathrm{X}$ (meters)', 'Interpreter', 'latex', 'FontSize', 18);
+ylabel('$\mathrm{Y}$ (meters)', 'Interpreter', 'latex', 'FontSize', 18);
+
+% Create a more descriptive legend using the plot handles
+legend([p_track, p1, p2, p3,p4, p_start, p_end], ...
+       {'Constraint Set', 'Trajectory 1', 'Trajectory 2', 'Trajectory 3','Trajectory 4', 'Start Points', 'End Points'}, ...
+       'Interpreter', 'latex', 'Location', 'northeast', 'FontSize', 12);
+
 hold off;
 
-% Save the figure as a new PDF
+% --- Save the figure as a new PDF ---
 fprintf("Saving updated trajectory plot as PDF...\n");
 exportgraphics(fig1, 'AVR_policy_trajectory.pdf', 'ContentType', 'vector');
+
+fprintf("Script finished successfully.\n");

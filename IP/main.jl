@@ -23,11 +23,11 @@ l_d = -0.75
 up_d = 0.75
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 201
-num_points_state_2 = 201
+num_points_state_1 = 11
+num_points_state_2 = 11
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
-u  = collect(LinRange(-3.0, 3.0, 81))
+u  = collect(LinRange(-3.0, 3.0, 11))
 
 const c_min_1 = -0.3
 const c_max_1 = 0.3
@@ -183,8 +183,12 @@ for s in 1:nstates
 end
 end
 
-# print_model_summary(model)
+# --- Add this @time block ---
+println("\nStarting AVR LP optimization...")
+avr_lp_start_time = time()
 optimize!(model)
+avr_lp_solve_time = time() - avr_lp_start_time
+println("AVR LP Solve Time: $(avr_lp_solve_time) seconds")
 
 # Check solution status
 stat = termination_status(model)
@@ -245,6 +249,9 @@ function VI_MDR(λ::Float64)
     iteration = 0
     diff = Inf
 
+    # --- Start Timer for the Value Iteration Loop ---
+    vi_start_time = time()
+
     while diff > max_tolerance && iteration < max_iteration
             iteration += 1
             copyto!(U_prev, U)
@@ -282,6 +289,7 @@ function VI_MDR(λ::Float64)
         end
     end
 
+    vi_solve_time = time() - vi_start_time
     println("Value Iteration loop is over after $iteration iterations.")
     # --- PART 4: Final Calculation and Plotting ---
     Z = U .+ L
@@ -313,21 +321,19 @@ function VI_MDR(λ::Float64)
     policy_map = reshape(optimal_policy, num_points_state_1, num_points_state_2)'
 
 
-    return Z_map, Z, U, policy_map
+    return Z_map, Z, U, policy_map, vi_solve_time
 end
 
 λ= [0.0,0.1,0.2,0.3]
 dt =0.1
 MDR_MAX_ITERATION =10000
 MDR_MAX_TOLERANCE = 1e-9
-# --- Call the solver for each case ---
-Z_map_00,Z_0,U_0,policy_0 = VI_MDR(λ[1])
 
-Z_map_01,Z_1,U_1,policy_1 = VI_MDR(λ[2])
-
-Z_map_02,Z_2,U_2,policy_2 = VI_MDR(λ[3])
-
-Z_map_03,Z_3,U_3,policy_3 = VI_MDR(λ[4])
+# --- Call the solver for each case and capture the time ---
+Z_map_00,Z_0,U_0,policy_0, time_00 = VI_MDR(λ[1])
+Z_map_01,Z_1,U_1,policy_1, time_01 = VI_MDR(λ[2])
+Z_map_02,Z_2,U_2,policy_2, time_02 = VI_MDR(λ[3])
+Z_map_03,Z_3,U_3,policy_3, time_03 = VI_MDR(λ[4])
 
 # --- Generate the multi-layered plot ---
 
@@ -402,11 +408,18 @@ open(summary_filepath, "w") do f
 
     println(f, "\n--- Average Reward (AVR) Results ---")
     println(f, "Objective (min average reward): ", objective_value(model))
+    println(f, "LP Solve Time: $(avr_lp_solve_time) seconds")
     g1_count = count(x -> isapprox(x, 1.0; atol=1e-3), g_opt)
     println(f, "Percentage of states with g(x) ≈ 1: ", round(100 * g1_count / nstates, digits=2), "%")
 
     println(f, "\n--- Minimum Discounted Reward (MDR) Results ---")
     println(f, "Note: Using worst-case (minimum) value iteration.")
+
+    println(f, "MDR VI Solve Time (λ=$(λ[1])): $(time_00) seconds")
+    println(f, "MDR VI Solve Time (λ=$(λ[2])): $(time_01) seconds")
+    println(f, "MDR VI Solve Time (λ=$(λ[3])): $(time_02) seconds")
+    println(f, "MDR VI Solve Time (λ=$(λ[4])): $(time_03) seconds")
+
     # --- NEW LINES START HERE ---
     println(f, "Percentage of states with Z(x) ≈ 0 (λ=$(λ[1])): ", "%")
     println(f, "Percentage of states with Z(x) ≈ 0 (λ=$(λ[2])): ",  "%")

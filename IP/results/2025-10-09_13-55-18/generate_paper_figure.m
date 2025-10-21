@@ -82,19 +82,19 @@ contour(ax, x_coords, v_coords, Z_lambda0_0, [0.0 0.0], 'LineWidth', 2.5, 'Color
 Z_lambda0_01(51:135,1:55) = -10;
 Z_lambda0_01(65:151,148:201) = -10;
 
-contour(ax, x_coords, v_coords, Z_lambda0_01, [0.0, 0.0], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.01$)');
+contour(ax, x_coords, v_coords, Z_lambda0_01, [0.0, 0.0], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.1$)');
 
 
 Z_lambda0_1(51:135,1:55) = -10;
 Z_lambda0_1(65:151,148:201) = -10;
 
-contour(ax, x_coords, v_coords, Z_lambda0_1, [0.0, 0.0], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.015$)');
+contour(ax, x_coords, v_coords, Z_lambda0_1, [0.0, 0.0], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.2$)');
 
 
 Z_lambda0_2(51:135,1:55) = -10;
 Z_lambda0_2(65:151,148:201) = -10;
 
-contour(ax, x_coords, v_coords, Z_lambda0_2, [0.0,0.0], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.02$)');
+contour(ax, x_coords, v_coords, Z_lambda0_2, [0.0,0.0], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.3$)');
 
 
 hold(ax, 'off');
