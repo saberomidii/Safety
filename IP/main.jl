@@ -23,11 +23,11 @@ l_d = -0.75
 up_d = 0.75
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 11
-num_points_state_2 = 11
+num_points_state_1 = 201
+num_points_state_2 = 201
 x1 = collect(LinRange(-0.5, 0.5, num_points_state_1))
 x2 = collect(LinRange(-1.0, 1.0, num_points_state_2))
-u  = collect(LinRange(-3.0, 3.0, 11))
+u  = collect(LinRange(-3.0, 3.0, 81))
 
 const c_min_1 = -0.3
 const c_max_1 = 0.3

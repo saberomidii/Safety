@@ -1,0 +1,40 @@
+Safety Analysis Results
+========================================
+Run Timestamp: 2025-10-15_13-41-55
+System Type: Double Integrator
+
+--- System Details ---
+dt: 0.1
+safe_region: Racetrack (L_straight=2.0, R_outer=1.75, R_inner=1.0)
+
+--- Discretization ---
+Number of States: 115351
+Number of Actions: 41
+State Grid (x1): 61 points from [-3.0, 3.0]
+State Grid (x2): 61 points from [-3.0, 3.0]
+State Grid (x3): 31 points from [0.0, 6.283185307179586]
+
+--- Disturbance Properties ---
+Distribution Type: Normal
+Distribution Parameters: (mean = 0.0, sigma = 1.0)
+Clamping Bounds: [-1.0, 1.0]
+Samples Generated: 100
+
+--- Transition Matrix ---
+Monte Carlo Samples per (s,a): 115351
+
+--- Average Reward (AVR) Results ---
+Objective (min average reward): 0.25262026337009885
+Percentage of states with g(x) ≈ 1: 25.26%
+
+--- Minimum Discounted Reward (MDR) Results ---
+Note: Using worst-case (minimum) value iteration.
+Percentage of states with Z(x) ≈ 0 (λ=0.0): %
+Percentage of states with Z(x) ≈ 0 (λ=0.1): %
+Percentage of states with Z(x) ≈ 0 (λ=0.2): %
+Percentage of states with Z(x) ≈ 0 (λ=0.3): %
+
+MDR Parameters:
+MAX_ITER: 10000
+TOLERANCE: 1.0e-9
+λ values tested: [0.0, 0.1, 0.2, 0.3]
