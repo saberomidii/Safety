@@ -23,8 +23,8 @@ l_d =-1.0
 up_d =1.0
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
-num_points_state_1 = 161
-num_points_state_2 = 161
+num_points_state_1 = 201
+num_points_state_2 = 201
 x1 = collect(LinRange(-1.0, 5.0, num_points_state_1))
 x2 = collect(LinRange(-5.0, 5.0, num_points_state_2))
 u  = collect(LinRange(-2.0, 2.0, 81))
@@ -271,7 +271,6 @@ function VI_MDR(λ::Float64)
                 # Find the minimum U value among all possible next states
                                                 minimum(U[s_prime] for s_prime in s_primes_indices)
                                             end
-
                 if min_val_over_next_states > best_val_over_actions
                     best_val_over_actions = min_val_over_next_states
                     best_action_idx = a_idx
