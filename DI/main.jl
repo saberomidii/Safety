@@ -186,6 +186,7 @@ println("\nStarting AVR LP optimization...")
 avr_lp_start_time = time()
 optimize!(model)
 avr_lp_solve_time = time() - avr_lp_start_time
+
 # --------------------------------
 println("AVR LP Solve Time: $(avr_lp_solve_time) seconds")
 
@@ -210,6 +211,19 @@ bias = reshape(h_opt, num_points_state_1, num_points_state_2)
 optimal_policy = zeros(Int, nstates)
 @time optimal_policy = [argmax(r[s] .+ (T[s] * h_opt)) for s in 1:nstates]
 policy= reshape(optimal_policy,num_points_state_1,num_points_state_2)
+
+# State-Action Space and Optimality 
+println("Q functions computing")
+
+Q_g_star = zeros(nstates,nactions)
+for s in 1:nstates
+	Q_g_star[s,:] = r[s] .+ (T[s]*g_opt)
+end
+
+Q_h = zeros(nstates,nactions)
+for s in 1:nstates
+	Q_h[s,:] = r[s] .+ (T[s]*h_opt)
+end
 
 println("--- AVR is done")
 
@@ -436,6 +450,8 @@ println("Summary file saved to: ", summary_filepath)
 
 # --- 3. Save Data Matrices to CSV Files ---
 writedlm(joinpath(results_dir, "AVR_gain_map.csv"), gain, ',')
+writedlm(joinpath(results_dir,"Q_g_star.csv"),Q_g_star,',')
+writedlm(joinpath(results_dir,"Q_h.csv"),Q_h,',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.0.csv"), Z_map_00, ',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.01.csv"), Z_map_01, ',')
 writedlm(joinpath(results_dir, "MDR_Z_map_lambda_0.1.csv"), Z_map_02, ',')
