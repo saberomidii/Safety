@@ -668,7 +668,7 @@ Random.seed!(42)
 # Grid Size  a rectangular x,y and theta for orientation
 num_points_x = 76
 num_points_y = 76
-num_points_th = 31
+num_points_th = 41
 
 ## x y range    
 # Rectangular area: 6m long (x) by 4m wide (y)
