@@ -666,8 +666,8 @@ println("--- Starting Simulation Script ---")
 Random.seed!(42)
 
 # Grid Size
-num_points_x = 55
-num_points_y = 55
+num_points_x = 76
+num_points_y = 76
 num_points_th = 32
 
 ## x y range    
@@ -740,7 +740,7 @@ end
 
 # Physical Properties
 V          = 0.50   
-dt         = 0.20   
+dt         = 0.10   
 u_limits   = [-pi/2, pi/2] 
 nactions = 21
 u_actions = collect(LinRange(u_limits[1], u_limits[2], nactions))
