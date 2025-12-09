@@ -1,5 +1,4 @@
-%% MATLAB Code: Normalized Level Set Comparison (Final Tight Output with LaTeX Ticks)
-
+%% MATLAB Code: Normalized Level Set Comparison (Final Tight Output with Consistent Fonts)
 clear
 clc
 close all
@@ -10,6 +9,11 @@ ip_file_path = '/Users/saber/Desktop/Safety/IP/results/2025-10-09_13-55-18/AVR_g
 di_file_path = '/Users/saber/Desktop/Safety/DI/results/2025-10-08_23-15-25/AVR_gain_map.csv';
 levels = 0.4:0.001:1;
 num_levels = length(levels);
+
+% Define Consistent Font Parameters
+AXIS_FONT_SIZE = 40; % For X/Y labels
+TICK_FONT_SIZE = 35; % For tick labels and legend
+AXES_LINE_WIDTH = 3; % Consistent line width for the box/axes
 
 % --- 1. Processing Function (to avoid repeating code) ---
 calculate_normalized_levels = @(g) computeLevelSet(g, levels, num_levels);
@@ -42,55 +46,53 @@ y_plot_ip = fliplr(y_ip);
 y_plot_di = fliplr(y_di);
 
 % --- 5. Generate and Customize Plot (Optimized for Tight Output) ---
-
 % Set up figure and enable LaTeX rendering
-fig = figure('Position', [100, 100, 800, 600], 'PaperPositionMode', 'auto'); 
+fig = figure('Position', [100, 100, 800, 600]); 
 set(groot, 'DefaultTextInterpreter', 'latex');
 set(groot, 'DefaultLegendInterpreter', 'latex');
-set(groot, 'DefaultAxesFontSize', 30);
-
 ax = gca;
 hold on;
 
 % --- Plotting with LineWidth = 4 ---
 if success_ip
-    plot(x_plot, y_plot_ip, 'b-', 'LineWidth', 4, 'DisplayName', 'Inverted Pendulum');
+    plot(ax, x_plot, y_plot_ip, 'b-', 'LineWidth', 4, 'DisplayName', 'Inverted Pendulum');
 end
 if success_di
-    plot(x_plot, y_plot_di, 'r--', 'LineWidth', 4, 'DisplayName', 'Double Integrator');
+    plot(ax, x_plot, y_plot_di, 'r--', 'LineWidth', 4, 'DisplayName', 'Double Integrator');
 end
 hold off;
 
-% --- Title and Labels using LaTeX and increased FontSize ---
-% title('Normalized Level Set Comparison', 'FontSize', 20);
-xlabel('$\alpha$', 'FontSize', 30);
-ylabel('$\frac{\mathcal{K}_{\alpha}}{\mathcal{K}_1}$', 'FontSize', 30, 'Interpreter', 'latex');
+% --- Title and Labels using LaTeX and increased FontSize (AXIS_FONT_SIZE = 30) ---
+xlabel(ax, '$\alpha$', 'FontSize', AXIS_FONT_SIZE);
+ylabel(ax, '$\frac{\mathcal{K}_{\alpha}}{\mathcal{K}_1}$', 'FontSize', AXIS_FONT_SIZE);
 
-% *** CRUCIAL FIX: Ensure Tick Labels are Rendered in LaTeX ***
-set(ax, 'TickLabelInterpreter', 'latex');
+% --- Axis Configuration & Font Consistency ---
+xlim(ax, [0.4 1]); 
+ylim(ax, [0.5, 2]);
+set(ax, 'XDir', 'reverse'); 
 
-grid on;
-legend('Location', 'northwest');
+% *** ENFORCE CONSISTENT FONT SIZES & INTERPRETER (TICK_FONT_SIZE = 25) ***
+set(ax, ...
+    'TickLabelInterpreter', 'latex', ...
+    'FontSize', TICK_FONT_SIZE, ...
+    'LineWidth', AXES_LINE_WIDTH, ...
+    'Box', 'on'); % Keep the axes box consistent
 
-% --- Axis Configuration ---
-xlim([0.4 1]); 
-ylim([0.5,2])
-set(gca, 'XDir', 'reverse'); 
+grid(ax, 'on');
 
-% --- FIX: TIGHTENING THE PLOT ---
-set(ax, 'units', 'centimeters');
-ti = get(ax, 'TightInset');
-op = get(ax, 'OuterPosition');
-set(ax, 'units', 'normalized');
-set(fig, 'PaperUnits', 'centimeters');
-set(fig, 'PaperSize', [op(3)+ti(1)+ti(3), op(4)+ti(2)+ti(4)]); 
-set(fig, 'PaperPosition', [0 0 op(3)+ti(1)+ti(3), op(4)+ti(2)+ti(4)]); 
+% --- Legend Configuration (TICK_FONT_SIZE = 25) ---
+legend(ax, 'Location', 'southwest', 'FontSize', TICK_FONT_SIZE);
 
-% --- 6. Save Plot as PDF (Corrected for tight fit) ---
-% Using '-painters' renderer for robust vector graphics and '-loose' for minimal margins.
-print(fig, 'Normalized_Level_Set_Comparison', '-dpdf', '-r300', '-painters', '-loose'); 
+% --- 6. Save the Figure (Using the Modern, Tight-Cropped Method) ---
+output_filename = 'Normalized_Level_Set_Comparison.pdf';
+fprintf('Saving figure to %s...\n', output_filename);
 
-disp('Plot generated and saved as "Normalized_Level_Set_Comparison.pdf" with all text (labels, title, and ticks) using LaTeX rendering.');
+% CRITICAL: Use TightInset to remove extra whitespace (padding)
+set(ax, 'LooseInset', get(ax, 'TightInset'));
+
+% Use exportgraphics for high-quality, vector PDF output (as requested)
+exportgraphics(fig, output_filename, 'ContentType', 'vector', 'BackgroundColor', 'white');
+fprintf('Figure saved as %s\n', output_filename);
 
 %% Local Function for Level Set Calculation
 function [normalized_levels, alpha_1_proportion] = computeLevelSet(g, levels, num_levels)

@@ -45,22 +45,22 @@ function generate_paper_figure()
     plotConstraintSet(ax, constraint_velocity_lim, constraint_position_lim);
     
     % CRITICAL: Transpose data matrices (.') and swap coordinate vectors (velocity, position)
-    contour(ax, velocity_coords, position_coords, G_average.', [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR Safe Set ($g^*(s)=1$)');
-    contour(ax, velocity_coords, position_coords, Z_lambda0_0.', [0.0 0.0], 'LineWidth', 2.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
+    contour(ax, velocity_coords, position_coords, G_average.', [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_0.', [0.0 0.0], 'LineWidth', 2.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($\lambda=0.0$)');
     
     % Data masking is kept on the original matrix structure (Rows=V, Cols=X). 
     % When transposed for plotting, the masked area remains visually correct.
     Z_lambda0_01(51:135,1:55) = -10;
     Z_lambda0_01(65:151,148:201) = -10;
-    contour(ax, velocity_coords, position_coords, Z_lambda0_01.', [0.0, 0.0], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.1$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_01.', [0.0, 0.0], 'LineWidth', 2, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($\lambda=0.1$)');
     
     Z_lambda0_1(51:135,1:55) = -10;
     Z_lambda0_1(65:151,148:201) = -10;
-    contour(ax, velocity_coords, position_coords, Z_lambda0_1.', [0.0, 0.0], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.2$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_1.', [0.0, 0.0], 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($\lambda=0.2$)');
     
     Z_lambda0_2(51:135,1:55) = -10;
     Z_lambda0_2(65:151,148:201) = -10;
-    contour(ax, velocity_coords, position_coords, Z_lambda0_2.', [0.0,0.0], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.3$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_2.', [0.0,0.0], 'LineWidth', 2, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($\lambda=0.3$)');
     
     hold(ax, 'off');
     
@@ -89,24 +89,31 @@ function plotConstraintSet(ax, velocity_lim, position_lim)
     box_y = [position_lim(1), position_lim(1), position_lim(2), position_lim(2), position_lim(1)]; % Position corners
     
     % Plotting (Velocity, Position)
-    plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 2, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
+    % plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 2, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
+    plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 3, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
 end
 function formatAxesAndLabels(ax)
     % Sets up the title, labels, grid, and legend with paper-consistent notation.
     grid(ax, 'on');
     axis(ax, 'equal');
     
+
+    pbaspect(ax, [1.625 1 1]);
+
     % CRITICAL: Swap axis limits for the rotation
     xlim(ax, [-0.65, 0.65]); % New X-axis (Velocity) limits
     ylim(ax, [-0.4, 0.4]);    % New Y-axis (Position) limits
     
     % Set font size for the tick labels on both axes
-    set(ax, 'FontSize', 16);
+    % set(ax, 'FontSize', 16);
+    set(ax, 'FontSize', 25, 'LineWidth', 3, 'Box', 'on', 'TickLabelInterpreter', 'latex');
     title(ax, '', 'Interpreter', 'latex', 'FontSize', 18);
     
     % CRITICAL: Swap labels
-    xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 16);
-    ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 16);
+    % xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 16);
+    xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 30);
+    ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 30);
+    % ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 16);
     
     lgd = legend(ax, 'show');
     
@@ -115,11 +122,13 @@ function formatAxesAndLabels(ax)
     legend_pos = get(lgd, 'Position');
     
     % 2. Define the new (left, bottom) coordinates (normalized to figure size, 0 to 1)
-    new_left = 0.1;  % Move it slightly right (5% from left edge of figure)
-    new_bottom = 0.275; % Move it up (30% from bottom edge of figure)
+    new_left = 0.05;  % Move it slightly right (5% from left edge of figure)
+    new_bottom = 0.22; % Move it up (30% from bottom edge of figure)
     
     % 3. Set the new position using the calculated width/height
+    % set(lgd, 'Position', [new_left, new_bottom, legend_pos(3), legend_pos(4)], ...
+    %     'Interpreter', 'latex', 'FontSize', 14);
     set(lgd, 'Position', [new_left, new_bottom, legend_pos(3), legend_pos(4)], ...
-        'Interpreter', 'latex', 'FontSize', 14); 
+        'Interpreter', 'latex', 'FontSize', 18);
     % Note: If you use the 'Position' property, the 'Location' property is ignored/overwritten.
 end

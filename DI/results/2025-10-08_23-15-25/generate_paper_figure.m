@@ -48,11 +48,11 @@ function generate_paper_figure()
     
     % CRITICAL CHANGE: The coordinate vectors are swapped, and the data matrix is transposed.
     % contour(ax, X_coords, Y_coords, Data_TRANSPOSED, ...)
-    contour(ax, velocity_coords, position_coords, G_average.', [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR Safe Set ($g^*(s)=1$)');
-    contour(ax, velocity_coords, position_coords, Z_lambda0_0.', [0.0 0.0], 'LineWidth', 3.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.0$)');
-    contour(ax, velocity_coords, position_coords, Z_lambda0_01.', [epsilon, epsilon], 'LineWidth', 3, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.01$)');
-    contour(ax, velocity_coords, position_coords, Z_lambda0_1.', [epsilon, epsilon], 'LineWidth', 3, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.015$)');
-    contour(ax, velocity_coords, position_coords, Z_lambda0_2.', [epsilon,epsilon], 'LineWidth', 3, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($Z(x)=0, \lambda=0.02$)');
+    contour(ax, velocity_coords, position_coords, G_average.', [1.0, 1.0], 'LineWidth', 3.5, 'Color', 'k', 'LineStyle', '-', 'DisplayName', 'AVR');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_0.', [0.0 0.0], 'LineWidth', 3.5, 'Color', [0.8500 0.3250 0.0980], 'LineStyle', '-', 'DisplayName', 'MDR ($\lambda=0.0$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_01.', [epsilon, epsilon], 'LineWidth', 3, 'Color', [0 0.4470 0.7410], 'LineStyle', '--', 'DisplayName', 'MDR ($\lambda=0.01$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_1.', [epsilon, epsilon], 'LineWidth', 3, 'Color', [0.4660 0.6740 0.1880], 'LineStyle', ':', 'DisplayName', 'MDR ($\lambda=0.015$)');
+    contour(ax, velocity_coords, position_coords, Z_lambda0_2.', [epsilon,epsilon], 'LineWidth', 3, 'Color', [0.4940 0.1840 0.5560], 'LineStyle', '-.', 'DisplayName', 'MDR ($\lambda=0.02$)');
     
     hold(ax, 'off');
     
@@ -80,28 +80,44 @@ function plotConstraintSet(ax, x_lim, y_lim)
     box_y = [y_lim(1), y_lim(1), y_lim(2), y_lim(2), y_lim(1)]; % Position corners
     
     % CRITICAL CHANGE: plotting (Velocity, Position)
-    plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 2, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
+    % plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 2, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
+    plot(ax, box_x, box_y, 'Color', [0.5 0.5 0.5], 'LineWidth', 3, 'LineStyle', '--', 'DisplayName', 'Constraint Set ($\mathcal{C}$)');
 end
 function formatAxesAndLabels(ax)
     % Sets up the title, labels, grid, and legend with paper-consistent notation.
     grid(ax, 'on'); 
     axis(ax, 'equal');
+
+    % *** ADD THIS LINE HERE ***
+    pbaspect(ax, [1.625 1 1]);
     
     % CRITICAL CHANGE: Swapping xlim and ylim values and labels
     
     % Old X (Position) limits: [-0.5, 4.5] -> New Y (Position) limits
     % Old Y (Velocity) limits: [-4.75, 3.5] -> New X (Velocity) limits
-    xlim(ax, [-4.75, 3.5]); % New X-axis (Velocity) limits
+    xlim(ax, [-3.5, 3.5]); % New X-axis (Velocity) limits
     ylim(ax, [-0.5, 4.5]);  % New Y-axis (Position) limits
     
     % Set font size for the tick labels on both axes
-    set(ax, 'FontSize', 16);
+    % set(ax, 'FontSize', 16);
+    set(ax, 'FontSize', 25, 'LineWidth', 3, 'Box', 'on', 'TickLabelInterpreter', 'latex');
     title(ax, '', 'Interpreter', 'latex', 'FontSize', 18);
     
     % CRITICAL CHANGE: Swapping labels
-    xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 16);
-    ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 16);
+    % xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 16);
+    xlabel(ax, 'Velocity ($\mathrm{v}$)', 'Interpreter', 'latex', 'FontSize', 30);
+    % ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 16);
+    ylabel(ax, 'Position ($\mathrm{x}$)', 'Interpreter', 'latex', 'FontSize', 30);
     
     lgd = legend(ax, 'show');
-    set(lgd, 'Interpreter', 'latex', 'Location', 'southwest', 'FontSize', 14);
+
+    legend_pos = get(lgd, 'Position');
+
+    % 2. Define the new (left, bottom) coordinates (normalized to figure size, 0 to 1)
+    new_left = 0.35;  % Move it slightly right (5% from left edge of figure)
+    new_bottom = 0.35; % Move it up (30% from bottom edge of figure)
+    
+    % set(lgd, 'Interpreter', 'latex', 'Location', 'southwest', 'FontSize', 14
+set(lgd, 'Position', [new_left, new_bottom, legend_pos(3), legend_pos(4)], ...
+        'Interpreter', 'latex', 'FontSize', 18);
 end
