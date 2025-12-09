@@ -666,9 +666,9 @@ println("--- Starting Simulation Script ---")
 Random.seed!(42)
 
 # Grid Size  a rectangular x,y and theta for orientation
-num_points_x = 55
-num_points_y = 55
-num_points_th = 32
+num_points_x = 76
+num_points_y = 76
+num_points_th = 31
 
 ## x y range    
 # Rectangular area: 6m long (x) by 4m wide (y)
@@ -806,9 +806,9 @@ end
 
 # Physical Properties of Race Car
 V          = 0.50   # Forward Speed (m/s)
-dt         = 0.20   # Time Step (s)
+dt         = 0.10   # Time Step (s)
 u_limits   = [-pi/2, pi/2] # Steering Limits (rad/s)
-nactions = 21
+nactions = 41
 u_actions = collect(LinRange(u_limits[1], u_limits[2], nactions))
 
 # - Bound = 0.60: The drift will never exceed 0.6 m/s (physical limit of tires).
@@ -1048,8 +1048,8 @@ println("Proportion >= 50% Safe: $(round(count(Q_safe .>= 0.50) / length(Q_safe)
 
 # Optional Solution 
 # --- 3.2 Stage Cost ---
-Q_LQR = 10*Diagonal([1.0, 1.0, 0.0]) 
-R_LQR = 0.1 
+Q_LQR = Diagonal([1.0, 1.0, 0.0]) 
+R_LQR = 1 
 
 function get_stage_cost(s_idx, u_idx)
     s = states_3d[s_idx]
