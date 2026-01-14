@@ -1641,9 +1641,9 @@ transition_test = false # transition matrix test
 
 ### Geometry and Physics of the problem
 # Grid Size  a rectangular x,y and theta for orientation
-num_points_x = 41
-num_points_y = 41
-num_points_th = 72
+num_points_x = 55
+num_points_y = 55
+num_points_th = 32
   
 # Rectangular area: 6m long (x) by 4m wide (y)
 x_grid = collect(LinRange(-3.0, 3.0, num_points_x))
@@ -1770,15 +1770,15 @@ end
 
 # Physical Properties of Race Car
 V          = 0.50   # Forward Speed (m/s)
-dt         = 0.10   # Time Step (s)
+dt         = 0.20   # Time Step (s)
 u_limits   = [-pi/3, pi/3] # Steering Limits (rad/s)
 
 SIGMA_SLIP = 0.1
 BOUND_SLIP = 0.1
 DIST_SLIP  = Truncated(Normal(0.0, SIGMA_SLIP), -BOUND_SLIP, BOUND_SLIP)
 
-SIGMA_STEER = 0.1
-BOUND_STEER = 0.1
+SIGMA_STEER = 0.5
+BOUND_STEER = 0.5
 DIST_STEER  = Truncated(Normal(0.0, SIGMA_STEER), -BOUND_STEER, BOUND_STEER)
 
 ### MDP Model 
@@ -1877,9 +1877,7 @@ end
 
 ### Linear Program Optimization Primal and Dual 
 #Primal 
-#model_p = Model(Mosek.Optimizer)
-model_p = direct_model(Mosek.Optimizer())
-
+model_p = Model(Mosek.Optimizer)
 set_optimizer_attribute(model_p, "MSK_IPAR_INTPNT_BASIS", 0)
 
 @variable(model_p, 0 <= g[1:nstates] <= 1)
@@ -1934,9 +1932,7 @@ dual_matrix_c1 = value.(dual.(model_p[:c1]))
 dual_matrix_c2 = value.(dual.(model_p[:c2]))
 
 # Dual Optimization  
-# model_d = Model(Mosek.Optimizer)
-  model_d = direct_model(Mosek.Optimizer())
-
+model_d = Model(Mosek.Optimizer)
 set_optimizer_attribute(model_d, "MSK_IPAR_INTPNT_BASIS", 0)
 
 @variable(model_d, z[1:nstates, 1:nactions] >= 0)
@@ -2249,5 +2245,3 @@ writedlm("state_60.csv", state_dis_60, ',')
 writedlm("state_95.csv",  state_dis_95,  ',')
 writedlm("state_100.csv",  state_dis_100,  ',')
 writedlm("dual.csv",  state_dual,      ',')
-
-### simulation 
