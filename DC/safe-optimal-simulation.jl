@@ -1770,7 +1770,7 @@ end
 
 # Physical Properties of Race Car
 V          = 0.50   # Forward Speed (m/s)
-dt         = 0.20   # Time Step (s)
+dt         = 0.10   # Time Step (s)
 u_limits   = [-pi/3, pi/3] # Steering Limits (rad/s)
 
 SIGMA_SLIP = 0.1
