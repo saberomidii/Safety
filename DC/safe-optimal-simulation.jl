@@ -1641,9 +1641,9 @@ transition_test = false # transition matrix test
 
 ### Geometry and Physics of the problem
 # Grid Size  a rectangular x,y and theta for orientation
-num_points_x = 55
-num_points_y = 55
-num_points_th = 32
+num_points_x = 61
+num_points_y = 61
+num_points_th = 40
   
 # Rectangular area: 6m long (x) by 4m wide (y)
 x_grid = collect(LinRange(-3.0, 3.0, num_points_x))
