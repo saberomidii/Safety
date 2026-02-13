@@ -1,3 +1,4 @@
+println("running ....")
 # Packages 
 using Random, Distributions
 using NearestNeighbors
@@ -14,13 +15,13 @@ using DelimitedFiles
 # Disturbance 
 Random.seed!(10) # Setting the seed
 μ=0.0
-σ=1.0
+σ=10.0
 nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d =-1.0
-up_d =1.0
+l_d =-Inf
+up_d =Inf
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
 num_points_state_1 = 201
@@ -224,6 +225,10 @@ Q_h = zeros(nstates,nactions)
 for s in 1:nstates
 	Q_h[s,:] = r[s] .+ (T[s]*h_opt)
 end
+
+using DelimitedFiles 
+writedlm("bias.csv", bias,",")
+
 
 println("--- AVR is done")
 
