@@ -1,3 +1,4 @@
+println("Code is runnig ....")
 # Packages 
 using Random, Distributions
 using NearestNeighbors
@@ -19,8 +20,8 @@ nsamples = 100
 d_list =rand(Normal(μ, σ), nsamples)
 max_d = maximum(d_list)
 min_d = minimum(d_list)
-l_d = -0.75
-up_d = 0.75
+l_d = -Inf
+up_d = Inf
 d_list_bounded = clamp.(d_list,l_d,up_d)
 # Transition matrix 
 num_points_state_1 = 201
@@ -211,6 +212,11 @@ bias = reshape(h_opt, num_points_state_1, num_points_state_2)
 optimal_policy = zeros(Int, nstates)
 @time optimal_policy = [argmax(r[s] .+ (T[s] * h_opt)) for s in 1:nstates]
 policy= reshape(optimal_policy,num_points_state_1,num_points_state_2)
+
+using DelimitedFiles
+
+writedlm("bias.csv",bias,',')
+
 
 println("--- AVR is done")
 
